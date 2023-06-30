@@ -1,0 +1,57 @@
+# I from DENIS(D), only for B163 from PPMXL: A Proper Motion Catalog Combining USNO-B and 2MASS
+# JHK magnitudes from 2MASS
+# 3.4, 4.6, 11.6 um from WISE All-Sky release or WISE 3-band Cryo
+# 3.6, 4.5, 5.8 and 8.0 um from Spitzer GLIMSPE (I)
+# 4.5 um from Spitzer APOGLIMPSE
+# Obj	I       e_I     J 	    e_J     H 	    e_H     K 	    e_K    3.4um    e_3.4   3.6um   e_3.6   4.5um   e_4.5   4.6um    e_4.6   5.8um   e_5.8   8.0um  e_8.0
+B163    nan     nan     12.877  0.052   10.915  0.036   9.686   0.027  7.955    0.032   7.919   0.069   7.225   0.047   7.000    0.033   6.64    0.042   6.082  0.11
+B243    14.907  1.00    12.252  0.026   10.815  0.029   9.544   0.026  8.148    0.042   7.829   0.046   7.216   0.057   7.235    0.032   6.676   0.034   6.227  0.118
+B268    14.332  1.00    11.794  0.043   10.538  0.041   9.494   0.027  7.9743   0.022   8.129   0.053   7.71    0.051   nan      nan     7.404   0.134   nan    nan
+B275    12.804  0.03    10.467  0.033   9.128   0.029   7.947   0.024  nan      nan     6.662   0.062   5.88    0.033   5.8771   0.023   5.346   0.038   nan    nan
+B331    15.754  0.06    11.355  0.024   9.822   0.033   8.946   0.036  nan      nan     7.718   0.192   7.017   0.087   nan      nan     6.026   0.135   nan    nan
+
+
+# WISE photometry (http://wise2.ipac.caltech.edu/docs/release/allsky/expsup/sec4_4h.html#conv2flux)
+# Catalogue magnitudes are *NOT* monochromal. Use conversion table to convert to isophotal flux in Jy.
+# The isophotal flux for conversion of magnitudes to flux at wavelengths 3.35, 4.60, 11.56 µm (resp bands 1-3)
+# was derived by integrating the modified Vega spectrum across the WISE RSRs.
+# Apply color correction (see webpagefor details) f0 = F*_nu/f_c on:
+# B163, B243 and B331: (nu^-2) (based on W2-W3 color of ~4)
+# B268, B275: (nu^3)   (based on W1-W2 color that is negative, and lacking (solid) data for W3)
+# Isophotic wavelengths and flux
+#       lambda(iso)     F_lambda(iso)(erg/s/cm^2/um)F_nu (Jy)     F*_nu (Jy)    f_c (nu^3) m_c     f_c (nu^-2)
+# W1 	3.3526  0.0132	8.1787e-08  1.2118e-09  309.540 4.582 306.682 4.600     1.0283     0.0303  1.0
+# W2 	4.6028  0.0168	2.4150e-08  3.5454e-10  171.787 2.516 170.663 2.600     1.0206     0.0221  1.0
+# W3 	11.5608 0.0446 	6.5151e-10  9.8851e-12  31.674 	0.450 29.045  0.436                        1.0
+#
+# All W3 data are outliers as expected. For B331 remove all WISE photometry. For B275 remove W1, use corrected W2.
+# For B268 remove W2, use corrected W1.
+#       3.4um    e_3.4  4.6um    e_4.6  11.6um  e_11.6
+# B163                                  3.056   0.470
+# B243                                  2.993   nan
+# B268  7.944           8.7221   0.155  2.525   nan
+# B275  5.693    0.039  5.855           nan     nan
+# B331  6.609    0.055  6.259    0.033  2.186   0.223
+#
+# Zero points Spitzer IRAC (Reach et al. 2005)
+# lambda    3.550       4.493       5.731       7.872 um
+# F_0       280.9 (4.1) 179.7(2.6)  115.0 (1.7) 64.13 (0.94) Jy
+#
+# Zero point DENIS I band (Fouque et al. 2000)
+# lambda    0.791
+# F_0       2499 Jy
+#
+# B331 3.6um      e_3.6   4.5um       e_4.5 (uJy)  (Spitzer SEIP source list)
+#      223600.0   32.16   251800.0    33.750
+#
+# Extra for B275: (from Nielbock 2001)
+#   10.6um      20um
+#   1.9 (0.32)  <7.9   (Jy)
+# Extra for B331:
+# 9.8um, 10.53um, 11.7um, 20.6um  (in Jy) from Kassis et al. 2002 (NASA Infrared Telescope Facility (IRTF), MIRAC2)
+# 20 um, 37 um from Lim et al. 2020 (in Jy) (background subtracted integrated flux) (SOFIA)
+# 20 um point is outlier, not used.
+# 9.8um       10.53um     11.7um    20um  e_20  20.6um      37um  e_37
+# 1.5(0.2)    1.8 (0.3)   2.1(0.1)  7.90  1.18  6.4(0.87)   21.89 2.19
+
+

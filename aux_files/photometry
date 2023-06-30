@@ -1,0 +1,17 @@
+# Flux zero points from Spitzer Telescope Handbook
+# http://irsa.ipac.caltech.edu/data/SPITZER/docs/spitzermission/missionoverview/spitzertelescopehandbook/19/
+#http://casa.colorado.edu/~ginsbura/filtersets.htm
+
+# UBVRI magnitudes from Neckel, T. & Chini, R. 1980
+# JHK magnitudes from 2MASS Skrutskie et al. 2006
+# 3.6 and 5.8 um from Spitzer GLIMSPE Benjamin et al. 2003
+# N and Q bands (10, 20 um) Nielbock et al. 2001 and SPITZER
+# conversion to erg s-1 cm-2 A-1 in http://localhost:8888/notebooks/mJy_to_erg_s-1_cm-2_Hz-1.ipynb (macla)
+
+# Obj	SpT		T	    logg	U 		B 		V 	    R		I		J 	    H 		K 	    3.6um 	5.8um 	10.6um              20 um
+B163	A5 	    8200	nan		nan		nan		nan		19.9	nan		12.877	10.915	9.686	nan		nan		nan                   nan
+B243	B8V 	13500	4.34	nan		19.1	17.8	16.1	13.8	12.252	10.815	9.544	7.829 	6.676	nan                   nan
+B268	B9-A0   12250	3.99	nan		18.4	17.1	15.2	13.4	11.794	10.538	9.494	8.129 	7.404	nan                   nan
+B275	B7III	12950   3.39	17.50	17.02	15.55	13.60	12.21	10.467	9.128	7.947	6.662	5.346	5.06946920612e-15   5.9208999e-15
+B331	late-B 	13000	nan 	nan		nan	    nan       17.9	14.1	11.355	9.822	8.946	7.718	6.026 	2.29460185119e-14   2.2746748e-14
+
