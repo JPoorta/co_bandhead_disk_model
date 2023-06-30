@@ -39,7 +39,7 @@ def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=cfg.wsil, num_r=200, R_m
     tau = (((np.pi * cfg.radg ** 2) * cfg.Qabs[None, :]) * NH[:, None] *
            2 * cfg.mass_proton / cfg.mass_grain / cfg.gas_to_solid)
     tau_int = np.array([np.interp(wvl, cfg.wsil[::-1], tau[r, :][::-1]) for r in range(len(R))])
-    BB_dust = cfg.Planck_wvl(wvl[None, :] / 1.e4, Tdust[:, None])
+    BB_dust = cfg.planck_wvl(wvl[None, :] / 1.e4, Tdust[:, None])
 
     flux_star = cfg.stellar_cont(star, wvl)
 

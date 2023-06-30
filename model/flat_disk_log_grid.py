@@ -97,7 +97,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     tau_CO = alpha * NCO[None, :, None]  # optical depth of CO/gas
 
     # Source function gas in erg/s/cm^2/sr/micron
-    BB_CO = cfg.Planck_wvl(wave[None, :] / 1.e4, T_gas[:, None])
+    BB_CO = cfg.planck_wvl(wave[None, :] / 1.e4, T_gas[:, None])
 
     if not dust:
 
@@ -110,7 +110,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
                         * 2 * cfg.mass_proton / cfg.mass_grain / cfg.gas_to_solid
         tau_cont = np.array([np.interp(wave, cfg.wsil[::-1], tau_cont_wsil[nh, :][::-1]) for nh in range(len(NH))])
         # Source function dust erg/s/cm^2/sr/micron
-        BB_dust = cfg.Planck_wvl(wave[None, :] / 1.e4, T_dust[:, None])
+        BB_dust = cfg.planck_wvl(wave[None, :] / 1.e4, T_dust[:, None])
         # Total optical depth
         tau_tot = tau_CO + tau_cont[None, :, :]
         # Total source function erg/s/cm^2/sr/micron
@@ -395,7 +395,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             # Create velocity array for velocity profiles per ring.
             # --------------------------------------------------------------
 
-            max_Kep = cfg.V_kep_cm_s(Mstar, Rmin)
+            max_Kep = cfg.v_kep_cm_s(Mstar, Rmin)
             nv = np.int(np.around(max_Kep / dv)) + 100
             vel_Kep = np.arange(-nv, nv + 1.) * dv
 

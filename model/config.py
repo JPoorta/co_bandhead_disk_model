@@ -132,26 +132,26 @@ def load_inc_dust_dict(st):
         return pickle.load(f)
 
 
-def filename_co_grid_point(ti, p, ni, q, ri_R, dv=None):
+def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None):
     """
     Standardized filename for saving grid items.
 
-    :param ti: (int or float) initial temperature at ri_R in K.
+    :param ti: (int or float) initial temperature at ri_r in K.
     :param p: (float) temperature exponent.
     :param ni: (float) initial column density in cm^-2.
     :param q: (float) density exponent.
-    :param ri_R: (float) initial (reference) disk radius in stellar radii.
+    :param ri_r: (float) initial (reference) disk radius in stellar radii.
     :param dv:(float) gaussian width in km/s. (The None option is retained for older model grids, that don't vary dv.)
-    :return:
+    :return: (str) name of the model file
     """
     if dv is not None:
         return str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
             + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-            + str(np.around(q, 1)) + '_' + str(np.around(ri_R, 1)) + '_dv' + '{0:g}'.format(dv)
+            + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1)) + '_dv' + '{0:g}'.format(dv)
     else:
         return str(np.int(ti)) + '_' + str(np.around(p, 2)) + '_' \
             + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-            + str(np.around(q, 1)) + '_' + str(np.around(ri_R, 1))
+            + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
 
 
 # Molecular data
@@ -250,7 +250,7 @@ M17_phot = np.loadtxt(photometry_naira,
                               'formats': ('U10', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8',
                                           'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8')})).T
 
-phot_frame = pd.DataFrame(M17_phot, index=M17_phot['Obj'])
+phot_frame_m17 = pd.DataFrame(M17_phot, index=M17_phot['Obj'])
 
 
 def mag_to_flux(band, mag, phot_dict, sigma=None, sigma_nan=0.5):
@@ -305,34 +305,34 @@ def flux_ext(flux, wvl, a_v, r_v, dered=False):
     coeffs_C = np.polyfit(x_Card, Al, 4)
     Al_interp = np.poly1d(coeffs_C)(wvl ** -1)
 
-    # Select the wavelength point with 0 (or minimum) extinction and redden all blueward flux-points.
-    max_wvl = wvl[np.argmin(np.abs(Al_interp))]
+    # Select the wavelength point with 0 (or minimum) extinction and redden all blue-ward flux-points.
+    max_wvl_ext = wvl[np.argmin(np.abs(Al_interp))]
 
-    wvl_indexes = np.where(wvl <= max_wvl)[0]
-    mask = np.ones(len(flux), np.bool)
-    mask[wvl_indexes] = 0
+    wvl_indexes = np.where(wvl <= max_wvl_ext)[0]
+    ext_mask = np.ones(len(flux), np.bool)
+    ext_mask[wvl_indexes] = 0
 
     Al_final = np.poly1d(coeffs_C)(wvl[wvl_indexes] ** -1)
 
     # Extincted or dereddened flux.
     if dered:
         dered_fl = np.asarray(flux[wvl_indexes]) * 10 ** (Al_final / 2.5)
-        tot_fl = np.concatenate((flux[mask], dered_fl))
+        tot_fl = np.concatenate((flux[ext_mask], dered_fl))
     else:
         ext_fl = np.asarray(flux[wvl_indexes]) * 10 ** (-Al_final / 2.5)
-        tot_fl = np.concatenate((flux[mask], ext_fl))
+        tot_fl = np.concatenate((flux[ext_mask], ext_fl))
 
     return tot_fl
 
 
-def get_and_convert_mag_naira(phot_frame=phot_frame, phot_dict=None):
+def get_and_convert_mag_naira(phot_frame=phot_frame_m17, phot_dict=None):
     """
     Get and convert all the magnitudes to flux. Appends the photometric fluxes and errors for each object to
     stel_parameter_dict.
 
     :param phot_frame:
     :param phot_dict:
-    :return None
+    :return: None
     """
 
     if phot_dict is None:
@@ -373,12 +373,12 @@ get_and_convert_mag_naira()
 #  FUNCTIONS
 
 
-def Planck_wvl(x, Temp):  # erg/s/cm2/micron (with x in cm)
-    return 2 * h * c ** 2 / x ** 5 / (np.exp(h * c / kB / Temp / x) - 1) * 1.e-4
+def planck_wvl(x, temp):  # erg/s/cm2/micron (with x in cm)
+    return 2 * h * c ** 2 / x ** 5 / (np.exp(h * c / kB / temp / x) - 1) * 1.e-4
 
 
-def Planck_freq(x, Temp):
-    return 2 * (x / c) ** 2 * (h * x) / (np.exp(h * x / kB / Temp) - 1)
+def planck_freq(x, temp):
+    return 2 * (x / c) ** 2 * (h * x) / (np.exp(h * x / kB / temp) - 1)
 
 
 def gaussian(x, mu, sigma):
@@ -394,12 +394,12 @@ def gaussian(x, mu, sigma):
     return np.exp(- (((x - mu) / sigma) ** 2) / 2.) / sigma / np.sqrt(2 * np.pi)
 
 
-def integrand_gauss(theta, v, r, Mstar, inc, dv=sampling * min_dv_cm):
+def integrand_gauss(theta, v, r, mstar, inc, dv=sampling * min_dv_cm):
     """
     The gaussian function peaking at a velocity corresponding to a certain radius and angle.
     In flat_disk_log_grid this function is integrated over the angle theta to obtain a velocity profile for each radius.
 
-    :param Mstar: Stellar mass.
+    :param mstar: Stellar mass.
     :param inc: Inclination of the disk
     :param dv: width of the gaussian velocity distribution peaking at the Keplerian velocity (in cm/s).
     The default is twice the resolution of the wavelength array, making it de facto a delta function, i.e. assuming no
@@ -411,22 +411,22 @@ def integrand_gauss(theta, v, r, Mstar, inc, dv=sampling * min_dv_cm):
     """
 
     if type(v) is np.ndarray:
-        mu = V_kep_cm_s(Mstar, r)[:, None] * np.sin(inc) * np.sin(theta)[None, :]
+        mu = v_kep_cm_s(mstar, r)[:, None] * np.sin(inc) * np.sin(theta)[None, :]
         return gaussian(v[None, :, None], mu[:, None, :], dv)
     else:
-        mu = V_kep_cm_s(Mstar, r) * np.sin(inc) * np.sin(theta)
+        mu = v_kep_cm_s(mstar, r) * np.sin(inc) * np.sin(theta)
         return gaussian(v, mu, dv)
 
 
-def V_kep_cm_s(M_star, R):
+def v_kep_cm_s(m_star, r):
     """
     Keplarian velocity in cm/s.
 
-    :param M_star: in units solar mass.
-    :param R: stellar radius in cm.
+    :param m_star: in units solar mass.
+    :param r: stellar radius in cm.
     :return: Keplarian velocity in cm/s.
     """
-    return np.sqrt(G * M_star * M_sun / R)
+    return np.sqrt(G * m_star * M_sun / r)
 
 
 # Temperature power law
@@ -478,6 +478,6 @@ def stellar_cont(star, wc):
     mod_wvl = mod_wvl_micron[IR]
     mod_flux = mod_flux_full[IR]
     # Interpolate onto wavelength grid.
-    stellar_cont = np.exp(interp1d(np.log(mod_wvl), np.log(mod_flux), fill_value='extrapolate')(np.log(wc)))
+    stel_cont = np.exp(interp1d(np.log(mod_wvl), np.log(mod_flux), fill_value='extrapolate')(np.log(wc)))
 
-    return stellar_cont
+    return stel_cont
