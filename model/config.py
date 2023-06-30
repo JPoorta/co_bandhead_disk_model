@@ -215,7 +215,7 @@ Qabs = -4. * (2 * np.pi * radg / wsil / 1e-4) * np.imag((mm ** 2 - 1) / (mm ** 2
 
 # Photometric data
 
-def Jy_to_erg_s_cm2_um(f_vu, wvl):
+def jy_to_erg_s_cm2_um(f_vu, wvl):
     """
     Convert flux units. Uses c as defined in config (converts from cm/s to um/s).
 
@@ -234,14 +234,14 @@ def Jy_to_erg_s_cm2_um(f_vu, wvl):
 # (for details see photometry in auxfiles).
 # (wavelength,zero point flux, error on zeropoint) in (micron, erg/s/cm^-2/um, erg/s/cm^-2/um)
 
-m17_phot_dict = {'I': [0.791, Jy_to_erg_s_cm2_um(2499, 0.791), np.nan], 'J': [1.235, 3.129e-6, 5.464e-8],
+m17_phot_dict = {'I': [0.791, jy_to_erg_s_cm2_um(2499, 0.791), np.nan], 'J': [1.235, 3.129e-6, 5.464e-8],
                  'H': [1.662, 1.133e-6, 2.212e-8], 'K': [2.159, 4.283e-7, 8.053e-9],
                  '3.4um': [3.3526, 8.1787e-08, 1.2118e-09],
-                 '3.6um': [3.550, Jy_to_erg_s_cm2_um(280.9, 3.55), Jy_to_erg_s_cm2_um(4.1, 3.55)],
-                 '4.5um': [4.493, Jy_to_erg_s_cm2_um(179.7, 4.493), Jy_to_erg_s_cm2_um(2.6, 4.493)],
+                 '3.6um': [3.550, jy_to_erg_s_cm2_um(280.9, 3.55), jy_to_erg_s_cm2_um(4.1, 3.55)],
+                 '4.5um': [4.493, jy_to_erg_s_cm2_um(179.7, 4.493), jy_to_erg_s_cm2_um(2.6, 4.493)],
                  '4.6um': [4.6028, 2.4150e-08, 3.5454e-10],
-                 '5.8um': [5.731, Jy_to_erg_s_cm2_um(115.0, 5.731), Jy_to_erg_s_cm2_um(1.7, 5.731)],
-                 '8.0um': [7.872, Jy_to_erg_s_cm2_um(63.13, 7.872), Jy_to_erg_s_cm2_um(0.92, 7.872)]}
+                 '5.8um': [5.731, jy_to_erg_s_cm2_um(115.0, 5.731), jy_to_erg_s_cm2_um(1.7, 5.731)],
+                 '8.0um': [7.872, jy_to_erg_s_cm2_um(63.13, 7.872), jy_to_erg_s_cm2_um(0.92, 7.872)]}
 
 M17_phot = np.loadtxt(photometry_naira,
                       dtype=({'names': ('Obj', 'I', 'e_I', 'J', 'e_J', 'H', 'e_H', 'K', 'e_K', '3.4um',
@@ -350,15 +350,15 @@ def get_and_convert_mag_naira(phot_frame=phot_frame, phot_dict=None):
         # Add additional fluxpoints for B275 and B331 'manually'.
         if obj == 'B275':
             wvl.extend([10.6, 20])
-            flux.append(Jy_to_erg_s_cm2_um(np.array([1.9, 0.32]), 10.6))
-            flux.append(Jy_to_erg_s_cm2_um(np.array([7.9, 0.5 * 7.9]), 20))
+            flux.append(jy_to_erg_s_cm2_um(np.array([1.9, 0.32]), 10.6))
+            flux.append(jy_to_erg_s_cm2_um(np.array([7.9, 0.5 * 7.9]), 20))
         if obj == 'B331':
             wvl.extend([9.8, 10.53, 11.7, 20.6, 37])
-            flux.append(Jy_to_erg_s_cm2_um(np.array([1.5, 0.2]), 9.8))
-            flux.append(Jy_to_erg_s_cm2_um(np.array([1.8, 0.3]), 10.53))
-            flux.append(Jy_to_erg_s_cm2_um(np.array([2.1, 0.1]), 11.7))
-            flux.append(Jy_to_erg_s_cm2_um(np.array([6.4, 0.87]), 20.6))
-            flux.append(Jy_to_erg_s_cm2_um(np.array([21.89, 2.19]), 37))
+            flux.append(jy_to_erg_s_cm2_um(np.array([1.5, 0.2]), 9.8))
+            flux.append(jy_to_erg_s_cm2_um(np.array([1.8, 0.3]), 10.53))
+            flux.append(jy_to_erg_s_cm2_um(np.array([2.1, 0.1]), 11.7))
+            flux.append(jy_to_erg_s_cm2_um(np.array([6.4, 0.87]), 20.6))
+            flux.append(jy_to_erg_s_cm2_um(np.array([21.89, 2.19]), 37))
 
         # Get the indices of the corresponding points in wsil (for SED fitting).
         ind = [np.argmin(abs(wsil - i)) for i in wvl]
@@ -431,31 +431,31 @@ def V_kep_cm_s(M_star, R):
 
 # Temperature power law
 
-def T_ex(r, Ti, Ri, p):
+def t_ex(r, ti, ri, p):
     """
     Excitation temperature for the gas, given as a power law.
 
     :param r: Radial coordinate in cm.
     :type r: array
-    :param Ti: Initial temperature at Ri in K.
-    :param Ri: Initial radius in cm.
+    :param ti: Initial temperature at ri in K.
+    :param ri: Initial radius in cm.
     :param p: Power law exponent.
     :return: Return excitation temperature in function of r.
     """
-    return Ti * (r / Ri) ** p
+    return ti * (r / ri) ** p
 
 
-def NCO(r, Ni, Ri, q):
+def nco(r, ni, ri, q):
     """
     The CO surface density powerlaw (in cm^-2).
 
     :param r: radius in cm
-    :param Ni: Gas (H2) surface density at initial radius (in cm^-2).
-    :param Ri: Initial radius in cm
+    :param ni: Gas (H2) surface density at initial radius (in cm^-2).
+    :param ri: Initial radius in cm
     :param q: Power law exponent for gas density
     :return: The CO surface density in cm^-2.
     """
-    return Ni * (r / Ri) ** q / H_CO[species]
+    return ni * (r / ri) ** q / H_CO[species]
 
 
 def stellar_cont(star, wc):

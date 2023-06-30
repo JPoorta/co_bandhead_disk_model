@@ -417,8 +417,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             # Gas temperature, density, opacities and source function where there is only gas.
             # --------------------------------------------------------------
             if gas_only_exist:
-                T_gas = cfg.T_ex(R_CO[CO_only], ti, ri, p)
-                NCO = cfg.NCO(R_CO[CO_only], ni, ri, q)
+                T_gas = cfg.t_ex(R_CO[CO_only], ti, ri, p)
+                NCO = cfg.nco(R_CO[CO_only], ni, ri, q)
                 S_CO, tau_CO = co_bandhead(T_gas=T_gas, NCO=NCO, wave=wvl,
                                            A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                            freq_trans=freq_trans, Elow=Elow,
@@ -446,8 +446,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
                 # Gas temperature, density, opacities and source function in whole disk.
                 # Continuum flux was calculated earlier.
-                T_gas = cfg.T_ex(R_CO, ti, ri, p)
-                NCO = cfg.NCO(R_CO, ni, ri, q)
+                T_gas = cfg.t_ex(R_CO, ti, ri, p)
+                NCO = cfg.nco(R_CO, ni, ri, q)
                 S_CO, tau_CO = co_bandhead(T_gas=T_gas, NCO=NCO, wave=wvl, A_einstein=A_einstein,
                                            jlower=jlower, jupper=jupper, freq_trans=freq_trans, Elow=Elow,
                                            prof_dict=profile_dict, dust=False)
@@ -497,11 +497,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # (The dust has its own parameters, independent of the gas, dependent on the inclination.)
                     # ---------------------------------------------------------
 
-                    T_gas_mix = cfg.T_ex(R_dust[mix], ti, ri, p)
-                    NCO_mix = cfg.NCO(R_dust[mix], ni, ri, q)
+                    T_gas_mix = cfg.t_ex(R_dust[mix], ti, ri, p)
+                    NCO_mix = cfg.nco(R_dust[mix], ni, ri, q)
 
-                    NH = cfg.NCO(R_dust[mix], Ni_d, Ri_d, q_d) * cfg.H_CO
-                    T_dust = cfg.T_ex(R_dust[mix], Ti_d, Ri_d, p_d)
+                    NH = cfg.nco(R_dust[mix], Ni_d, Ri_d, q_d) * cfg.H_CO
+                    T_dust = cfg.t_ex(R_dust[mix], Ti_d, Ri_d, p_d)
 
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(T_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
