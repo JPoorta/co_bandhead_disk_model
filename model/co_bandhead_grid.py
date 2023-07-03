@@ -31,7 +31,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, "/home/johanna/PhD/github_codes/co_bandhead_disk_model/")
+sys.path.insert(0, "../")
 import model.config as cfg
 import model.flat_disk_log_grid as fld
 

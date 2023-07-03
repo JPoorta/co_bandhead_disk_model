@@ -85,7 +85,7 @@ CO13_onset = {(1, 0): 4.3915, (2, 1): 4.447, (3, 2): 4.5037, (4, 3): 4.5617, (5,
 
 # FOLDERS and DATA
 
-project_folder = "/home/johanna/PhD/github_codes/co_bandhead_disk_model/"
+project_folder = "../"
 # Folders for results
 results_folder = project_folder + "results/"
 # Folder for data files
