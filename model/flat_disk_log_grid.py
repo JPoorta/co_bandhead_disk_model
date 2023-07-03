@@ -16,10 +16,14 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     :param freq_trans: Frequency of the transitions in cm**-1.
     :param dv: resolution of velocity/wavelength and frequency arrays in cm/s.
     :param dv0: list of doppler widths of the lines in cm/s.
-    :return: wvl array in micron, sorted from low to high and with equal spacing in velocity space.
-    Line profile dictionary of len(freq_trans) with keys: transition in cm**-1; and values: list of two 2D numpy arrays:
-    gaussian profiles, and indices on the frequency (and wavelength) array, both of shape (len(dv0), len(indices)).
+    :return:
+        - wavelength array in micron, sorted from low to high and with equal spacing in velocity space.
+        - Line profile dictionary of `len(freq_trans)` with
+            - keys: transition in cm^-1;
+            - values: list of two 2D ``numpy`` arrays: gaussian profiles, and indices on the frequency (and wavelength)
+              array, both of shape (len(dv0), len(indices)).
     """
+
     # --------------------------------------------------------------
     # Create a regularly spaced velocity array (in cm/s) (for convolution with velocity profiles),
     # based on maximum and minimum wavelengths. Convert velocities back to wavelengths (micron).
@@ -53,26 +57,40 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
 
 def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None):
     """
-    Calculates the source function and opacities ifo wavelength for the CO-bandheads and
-    (iff dust=True) for the dust continuum.
+    Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
+    dust continuum.
 
-    :param T_gas: Temperature of the CO gas in function of R. (1D array with len(R))
-    :param NCO: Surface number density (in cm^-2) of the CO gas in function of R. (1D array with len(R))
-    :param wave: wavelength array for which the output is wanted. (1D array)
-    :param A_einstein: Einstein A coefficients of all the transitions. (1D array with len(freq_trans))
-    :param jlower: lower rotational quantum numbers of all the transitions. (1D array with len(freq_trans))
-    :param jupper: upper rotational quantum numbers of all the transitions. (1D array with len(freq_trans))
-    :param freq_trans: transition frequencies in cm**-1. (1D array)
-    :param Elow: energies of the lower levels of the transitions in Kelvin. (1D array with len(freq_trans))
-    :param prof_dict: line profile dictionary (keys: transition in cm**-1, values:
-    gaussian profile, indices on the wavelength array; each an array of the length of dv0).
-    :param dust: (boolean) if True dust is included and dust_params has to be provided.
-    If False no continuum is returned.
-    :param dust_params: H2 surface density and dust temperatures ifo R. (list of two 1D arrays of len(R): [NH, T_dust])
-    :return: iff dust == False: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave))
-    and 3D array of shape (len(dv0),len(R),len(wave)).
-    iff dust = True: Total source function and opacity for CO+dust; two 3D arrays of shape (len(dv0),len(R),len(wave)),
-    and opacity and source function for dust; two 2D arrays of shape (len(R),len(wave)). Total four arrays.
+    :param T_gas: Temperature of the CO gas in function of R.
+    :type T_gas: 1D array with `len(R)`
+    :param NCO: Surface number density (in cm^-2) of the CO gas in function of R.
+    :type NCO: 1D array with `len(R)`
+    :param wave: wavelength array for which the output is wanted.
+    :type wave: 1D array
+    :param A_einstein: Einstein A coefficients of all the transitions.
+    :type A_einstein: 1D array with `len(freq_trans)`
+    :param jlower: lower rotational quantum numbers of all the transitions.
+    :type jlower: 1D array with `len(freq_trans)`
+    :param jupper: upper rotational quantum numbers of all the transitions.
+    :type jupper: 1D array with `len(freq_trans)`
+    :param freq_trans: transition frequencies in cm^-1.
+    :type freq_trans: 1D array
+    :param Elow: energies of the lower levels of the transitions in Kelvin.
+    :type Elow: 1D array with `len(freq_trans)`
+    :param prof_dict:
+
+        - keys: transition in cm^-1
+        - values: gaussian profile, indices on the wavelength array; each an array of the length of dv0.
+    :type prof_dict: line profile `dictionary`
+    :param dust: if True dust is included and dust_params has to be provided. If False no continuum is returned.
+    :type dust: Bool
+    :param dust_params: H2 surface density and dust temperatures ifo R.
+    :type dust_param: list of two 1D arrays of `len(R)`: [NH, T_dust]
+    :return: iff dust == `False`: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave)) and 3D
+        array of shape `(len(dv0), len(R), len(wave))`.
+
+        iff dust = `True`: Total source function and opacity for CO+dust; two 3D arrays of shape (len(dv0),len(R),
+        len(wave)), and opacity and source function for dust; two 2D arrays of shape (len(R),len(wave)).
+        Total four arrays.
     """
 
     # -----------------------------------------------------------------------------
@@ -125,20 +143,20 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
     Before integrating over R (optionally) convolve with velocity profiles using int_theta.
 
     :param S: source function (erg/s/cm^2/sr/micron) in function of wvl and R (2D array of shape (len(R),len(wvl)),
-    sometimes provided for multiple dv0 (if S_tot) in which case 3D array of shape (len(dv0),len(R),len(wvl).
+        sometimes provided for multiple dv0 (if S_tot) in which case 3D array of shape (len(dv0),len(R),len(wvl).
     :param tau: opacity in function of wvl and R (3D array of shape (len(dv0),len(R),len(wvl)).
     :param i: inclination in radians.
     :param R: radial distances (from the stellar surface) of the rings (in cm) (1D array).
-    :param wvl: wavelength array in micron, equally spaced in velocity (see create_freq_array_profile_dict)
-     Used to calculate the flux per ring (integration over wvl - dF).
+    :param wvl: wavelength array in micron, equally spaced in velocity (see create_freq_array_profile_dict) Used to
+            calculate the flux per ring (integration over wvl - dF).
     :param convolve: if True intensities will be convolved with a velocity profile provided through int_theta.
     :param int_theta: (2D array of shape (len(R), len(vel_Kep)) where vel_Kep represents an array of Keplerian
-    velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,
-    2 pi) for each radius (units (cm/s)^-1).
+            velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,
+            2 pi) for each radius (units (cm/s)^-1).
     :param dv: velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).
     :param dF: (boolean) if True calculate flux per ring.
     :return: flux in erg/s/cm^2/micron and dF/dR: wavelength integrated flux per ring in erg/s/cm^2/cm.
-    (Two 1D arrays with len(wvl).)
+            (Two 1D arrays with len(wvl).)
     """
 
     # Intensity (optionally) convolved with velocity profile (int_theta).
@@ -175,7 +193,7 @@ def instrumental_profile(wvl, res, vupper=None, vlower=None, center_wvl=None):
     :param vupper: array of upper vibrational quantum numbers. (optional, should be provided if no center_wvl is given)
     :param vlower: array of lower vibrational quantum numbers. (optional, should be provided if no center_wvl is given)
     :param center_wvl: reference wavelength for resolution and pivot point for convolution (0-point velocity).
-    (optional, but either this or vupper and vlower should be provided)
+            (optional, but either this or vupper and vlower should be provided).
     :return: a gaussian profile (in micron^-1) and the wavelength step dx in micron.
     """
 
@@ -202,53 +220,55 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
 
     :param grid: grid with 5 variables, created as follows by np.meshgrid:
-     >> tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)
-     >> grid = [tiv, pv, niv, qv, riv]
-     With Ti, p, Ni, q, Ri arrays or scalars:
-     Ti: initial CO gas temperature  at Ri (in K).
-     p: power law exponent for the gas temperature (p<0).
-     Ni: initial gas (H2) surface density at Ri (in cm^-2).
-     q: power law exponent for the gas surface density (q<0).
-     Ri: initial radius for the powerlaws for the CO gas disk (in stellar radii R*).
+         >>> tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)
+         >>> grid = [tiv, pv, niv, qv, riv]
+         With Ti, p, Ni, q, Ri arrays or scalars:
+
+         - Ti: initial CO gas temperature  at Ri (in K).
+         - p: power law exponent for the gas temperature (p<0).
+         - Ni: initial gas (H2) surface density at Ri (in cm^-2).
+         - q: power law exponent for the gas surface density (q<0).
+         - Ri: initial radius for the powerlaws for the CO gas disk (in stellar radii R*).
     :param inc_deg: array of inclination(s) in degrees. This can only contain values from [10,20,30,40,50,60,70,80]
     :param stars: array of string(s) with the object names.
     :param dv0: (scalar or array) doppler width of the lines in km/s. If array, for each element the bandheads
-    are calculated and (if relevant) saved in separate files with corresponding filenames.
+        are calculated and (if relevant) saved in separate files with corresponding filenames.
     :param vupper: list of upper level(s) of the vibrational transition(s).
     :param vlower: list of lower level(s) of the vibrational transition(s).
     :param nJ: number of rotational transitions to be taken into account.
     :param dust: boolean. If True dust is included. If False the continuum is assumed to be stellar only.
     :param sed_best_fit: boolean.
-    If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are adopted
-    (including inclination).
-    If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the continuum.
-    If dust = False this parameter is ignored.
+        - If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are adopted
+        (including inclination).
+        - If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the continuum.
+        - If dust = False this parameter is ignored.
     :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)
     :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)
     :param Rmin_in: (optional) initial radius for the CO gas disk (in stellar radii R*). If not provided defaults to Ri.
     :param Rmax_in: (optional) outer radius for the CO gas disk (in stellar radii R*). If not provided defaults
-    to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different
-    per grid point).
+            to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different
+            per grid point).
     :param print_Rs: (optional) boolean. If True information on the radial arrays is printed. (default = False)
     :param convolve: (optional) boolean. If True the fluxes are convolved with the instrumental profile and
-    returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes are
-    saved regardless of the value of save. (default = False)
+            returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes are
+            saved regardless of the value of save. (default = False)
     :param save: (optional) string specifying the name of the folder where the normalized bandheads and the wavelength
-     array are to be saved. If not provided, nothing is saved. (default = None)
+            array are to be saved. If not provided, nothing is saved. (default = None)
     :param maxmin: (optional) tuple (max, min). The maximum and minimum values maximum normalized flux points can take.
-    If the maximum of the normalized flux is higher than max or lower than min the model is not saved, even if save is
-    true.
+            If the maximum of the normalized flux is higher than max or lower than min the model is not saved, even if
+            save is true.
     :param lisa_it: (int (from 0 to 15) or None) refers to the thread number when the code is run on 16 parallel cores
-    in LISA. If used, the grid is divided into 16 equal parts, and the part with this thread number is run.
-    If this parameter is set to None, the full grid for all objects will be calculated serially.
+            in LISA. If used, the grid is divided into 16 equal parts, and the part with this thread number is run.
+            If this parameter is set to None, the full grid for all objects will be calculated serially.
     :param saved_list: (optional) string, specifying the filename extension (in folder aux_files, and beginning with a
-     star name) which contains a list of filenames of the models that need to be calculated (all other models will be
-     skipped!). To be used if large parts of the parameter space in a grid are models that don't get saved anyway
-     as for e.g. low (<0.5) p values.
+            star name) which contains a list of filenames of the models that need to be calculated (all other models
+            will be skipped!). To be used if large parts of the parameter space in a grid are models that don't get
+            saved anyway as for e.g. low (<0.5) p values.
     :return: the wavelength array and a 2D array containing the normalized fluxes for each inclination and
-     the last gridpoint in grid.
-     If convolve is True: the wavelength array, total extincted flux, normalized flux, convolved total flux
-     and convolved normalized flux are returned for the first gridpoint and first inclination.
+            the last gridpoint in grid.
+
+            If convolve is `True`: the wavelength array, total extincted flux, normalized flux, convolved total flux
+            and convolved normalized flux are returned for the first gridpoint and first inclination.
     """
 
     # Time the duration.

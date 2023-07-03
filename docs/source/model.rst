@@ -1,10 +1,4 @@
-model package
-=============
-
-Submodules
-----------
-
-model.co\_bandhead\_grid module
+model.co\_bandhead\_grid
 -------------------------------
 
 .. automodule:: model.co_bandhead_grid
@@ -12,15 +6,7 @@ model.co\_bandhead\_grid module
    :undoc-members:
    :show-inheritance:
 
-model.config module
--------------------
-
-.. automodule:: model.config
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-model.example module
+model.example
 --------------------
 
 .. automodule:: model.example
@@ -28,7 +14,16 @@ model.example module
    :undoc-members:
    :show-inheritance:
 
-model.flat\_disk\_log\_grid module
+model.config
+-------------------
+
+.. automodule:: model.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+model.flat\_disk\_log\_grid
 ----------------------------------
 
 .. automodule:: model.flat_disk_log_grid
@@ -36,18 +31,10 @@ model.flat\_disk\_log\_grid module
    :undoc-members:
    :show-inheritance:
 
-model.sed\_calculations module
+model.sed\_calculations
 ------------------------------
 
 .. automodule:: model.sed_calculations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: model
    :members:
    :undoc-members:
    :show-inheritance:

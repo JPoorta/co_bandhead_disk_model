@@ -3,7 +3,7 @@ import numpy as np
 import model.config as cfg
 
 
-def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=cfg.wsil, num_r=200, R_max=cfg.r_max_def, dust_params=None):
+def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=None, num_r=200, R_max=None, dust_params=None):
     """
     Calculates one full SED (dust + star) from free parameter input and stellar parameters in function of
     wavelength points <wvl> (default cfg.wsil).
@@ -17,13 +17,20 @@ def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=cfg.wsil, num_r=200, R_m
     :param star: string with name of the star.
     :param A_v: Extinction parameter Av.
     :param R_v: Extinction parameter Rv.
-    :param wvl: wavelength array to calculate the SED on.
+    :param wvl: wavelength array to calculate the SED on. (default `cfg.wsil`)
     :param num_r: number of radial grid points in the disk.
-    :param R_max: outer radius, default from config (500 AU).
+    :param R_max: outer radius, default from config is 500 AU.
     :param dust_params: list containing arrays: [R,NH,T_dust]. If provided overrides all other disk parameters except
-    inclination; also only the non-extincted flux is returned.
+            inclination; also only the non-extincted flux is returned.
     :return: wavelength array in micron, total flux, extincted star and dust fluxes, all in ergs/s/cm^2/micron.
     """
+
+    if wvl is None:
+        wvl = cfg.wsil
+
+    if R_max is None:
+        R_max = cfg.r_max_def
+
     inc_rad = inc * np.pi / 180
 
     if dust_params is None:
