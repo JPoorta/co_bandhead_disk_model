@@ -10,6 +10,6 @@ Welcome to CO bandhead disk model's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-      api.rst
+   api.rst
 
 

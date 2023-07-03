@@ -141,7 +141,8 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None):
     :param ni: (float) initial column density in cm^-2.
     :param q: (float) density exponent.
     :param ri_r: (float) initial (reference) disk radius in stellar radii.
-    :param dv:(float) gaussian width in km/s. (The None option is retained for older model grids, that don't vary dv.)
+    :param dv: (int or float) gaussian width in km/s. (The None option is retained for older model grids,
+        that don't vary dv.)
     :return: (str) name of the model file
     """
     if dv is not None:
@@ -325,7 +326,7 @@ def flux_ext(flux, wvl, a_v, r_v, dered=False):
     return tot_fl
 
 
-def get_and_convert_mag_naira(phot_frame=phot_frame_m17, phot_dict=None):
+def get_and_convert_mag_naira(phot_frame=None, phot_dict=None):
     """
     Get and convert all the magnitudes to flux. Appends the photometric fluxes and errors for each object to
     stel_parameter_dict.
@@ -334,7 +335,8 @@ def get_and_convert_mag_naira(phot_frame=phot_frame_m17, phot_dict=None):
     :param phot_dict:
     :return: None
     """
-
+    if phot_frame is None:
+        phot_frame = phot_frame_m17
     if phot_dict is None:
         phot_dict = m17_phot_dict
     for obj in phot_frame.index:
@@ -402,8 +404,8 @@ def integrand_gauss(theta, v, r, mstar, inc, dv=sampling * min_dv_cm):
     :param mstar: Stellar mass.
     :param inc: Inclination of the disk
     :param dv: width of the gaussian velocity distribution peaking at the Keplerian velocity (in cm/s).
-    The default is twice the resolution of the wavelength array, making it de facto a delta function, i.e. assuming no
-    macro turbulence.
+        The default is twice the resolution of the wavelength array, making it de facto a delta function,
+        i.e. assuming no macro turbulence.
     :param theta: Angular coordinate.
     :param v: velocity array in cm/s.
     :param r: Radial coordinate.
