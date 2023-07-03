@@ -4,9 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
-import sys
-
-sys.path.insert(0, "../")
+import os
 
 # CONSTANTS
 
@@ -89,7 +87,7 @@ CO13_onset = {(1, 0): 4.3915, (2, 1): 4.447, (3, 2): 4.5037, (4, 3): 4.5617, (5,
 
 # FOLDERS and DATA
 
-project_folder = "../"
+project_folder = os.path.abspath('../') + "/"
 # Folders for results
 results_folder = project_folder + "results/"
 # Folder for data files

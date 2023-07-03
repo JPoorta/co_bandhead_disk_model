@@ -31,7 +31,6 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, "../")
 import model.config as cfg
 import model.flat_disk_log_grid as fld
 
