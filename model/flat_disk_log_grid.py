@@ -323,8 +323,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         # Folder for saving.
         # --------------------------------------------------------------
         if save is not None:
-            folder = cfg.results_folder + st + '/' + save + '/'
-            np.save(folder + "wvl_re", wvl)
+            folder = cfg.results_folder / st / save
+            np.save(folder / "wvl_re", wvl)
 
         # --------------------------------------------------------------
         # Get stellar parameters.
@@ -591,14 +591,14 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
             if save is not None:
 
-                out_file = open(folder + "out.txt", "a")
+                out_file = open(folder / "out.txt", "a")
 
                 for k, element in enumerate(dv0_cm):
 
                     filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, dv=element / 1.e5)
 
                     if True in all_in_norm[k, :]:
-                        np.save(folder + filename, to_save[k, ...])
+                        np.save(folder / filename, to_save[k, ...])
                         out_file.write(st + " " + filename + " saved. \n")
                         print(st, filename, " saved.")
                     else:

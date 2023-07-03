@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 import os
+from pathlib import Path
 
 # CONSTANTS
 
@@ -86,19 +87,23 @@ CO13_onset = {(1, 0): 4.3915, (2, 1): 4.447, (3, 2): 4.5037, (4, 3): 4.5617, (5,
               (2, 0): 2.3448, (3, 1): 2.3739, (4, 2): 2.4037, (5, 3): 2.4341}
 
 # FOLDERS and DATA
+project_folder = Path(__file__).parent.parent
 
-project_folder = os.path.abspath(os.pardir)
+# to move up from docs and handle being in Ubuntu in CI
+if "GENERATING_SPHINX_DOCS" in os.environ:
+    project_folder = project_folder / os.pardir
+
 # Folders for results
-results_folder = os.path.abspath(os.path.join(project_folder, "results")) + "/"
+results_folder = project_folder / "results/"
 # Folder for data files
-aux_files = os.path.abspath(os.path.join(project_folder, "aux_files")) + "/"
+aux_files = project_folder / "aux_files/"
 
 # folder with Kurucz models
-Kurucz_dir = aux_files + 'Castelli-Kurucz/'
+Kurucz_dir = aux_files / "Castelli-Kurucz/"
 # Atomic data.
 species = "12C16O"
-atomic_data = aux_files + 'hitran_table_' + species
-partition_sums = aux_files + 'Q_' + species + '.npy'
+atomic_data = aux_files / ("hitran_table_" + species)
+partition_sums = aux_files / ("Q_" + species + ".npy")
 # State independent statistical weight factors g_i according to eq.22 in Simeckova 2006.
 # The statistical weights (2*J+1) should be multiplied by this factor.
 g_i_dict = {"12C16O": 1, "13C16O": 2}
@@ -106,14 +111,14 @@ g_i_dict = {"12C16O": 1, "13C16O": 2}
 # We use the hitran value for the relative abundance N(12CO)/N(13CO): 89 (https://hitran.org/docs/iso-meta/)
 N12CO_N13CO = 89
 H_CO = {"12C16O": 1.e4, "13C16O": 1.e4 * N12CO_N13CO}
-dust_data = aux_files + 'eps_Sil'
-photometry = aux_files + 'photometry'
-photometry_naira = aux_files + 'photometry_naira'
+dust_data = aux_files / 'eps_Sil'
+photometry = aux_files / 'photometry'
+photometry_naira = aux_files / 'photometry_naira'
 # Wavelength array onto which all models are interpolated before saving. Created by including all data points beyond
 # 1.54 micron process_molecfit_output_fits [conflicted] in X-shooter data folder.
-obj_wvl_array = aux_files + "wvl_obj.npy"
+obj_wvl_array = aux_files / "wvl_obj.npy"
 # Name of the pickle file where the best fits for the preferred grid is stored.
-best_fits_dict = aux_files + 'best_fits_dict'
+best_fits_dict = aux_files / 'best_fits_dict'
 
 
 # Pickle file location and extraction function for the dictionaries with the best dust fits per inclination.
@@ -130,8 +135,8 @@ def load_inc_dust_dict(st):
     :param st: String with the star name for which the dictionary is needed.
     :return:
     """
-    name = aux_files + "inc_dust_dict_" + st
-    with open(name + '.pkl', 'rb') as f:
+    name = aux_files / ("inc_dust_dict_" + st + ".pkl")
+    with open(name, 'rb') as f:
         return pickle.load(f)
 
 
@@ -476,7 +481,7 @@ def stellar_cont(star, wc):
 
     # Load saved Kurucz models, using the original stellar_cont function.
     # Model flux at Earth in units: ergs/cm^2/s/micron
-    mod_wvl_micron, mod_flux_full = np.load(aux_files + "kurucz_" + star + ".npy")
+    mod_wvl_micron, mod_flux_full = np.load(aux_files / ("kurucz_" + star + ".npy"))
 
     # Select relevant wavelengths.
     IR = np.where(np.logical_and(mod_wvl_micron < max(wc), mod_wvl_micron > min(wc)))
