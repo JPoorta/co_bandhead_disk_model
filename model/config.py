@@ -91,7 +91,7 @@ project_folder = os.path.abspath(os.pardir)
 # Folders for results
 results_folder = os.path.abspath(os.path.join(project_folder, "results"))
 # Folder for data files
-aux_files = os.path.abspath(os.path.join(project_folder, "aux_files")) + "/"
+aux_files = os.path.abspath(os.path.join(project_folder, "co_bandhead_disk_model/aux_files")) + "/"
 
 # folder with Kurucz models
 Kurucz_dir = aux_files + 'Castelli-Kurucz/'
