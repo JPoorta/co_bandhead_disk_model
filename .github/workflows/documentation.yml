@@ -7,13 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v3
-        with:
-            python-version: "3.7.5"
+      - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install sphinx sphinx_rtd_theme myst_parser numpy matplotlib
       - name: Sphinx build
         run: |
           sphinx-build docs/source _build
@@ -25,3 +22,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: _build
           force_orphan: true
+
