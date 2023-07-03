@@ -6,6 +6,14 @@ model.co\_bandhead\_grid
    :undoc-members:
    :show-inheritance:
 
+model.example
+--------------------
+
+.. automodule:: model.example
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 model.config
 -------------------
 
@@ -14,13 +22,6 @@ model.config
    :undoc-members:
    :show-inheritance:
 
-model.example
---------------------
-
-.. automodule:: model.example
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 model.flat\_disk\_log\_grid
 ----------------------------------

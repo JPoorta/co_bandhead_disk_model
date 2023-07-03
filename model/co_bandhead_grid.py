@@ -2,15 +2,28 @@
 Run this module to calculate a grid of CO-bandhead spectra. Check a few things:
 
 1. In ``config.py`` set the correct project folder:
-    >>> project_folder = "<full/path/to/>co_bandhead_disk_model/"
+
+.. code-block:: python
+
+    project_folder = "<full/path/to/>co_bandhead_disk_model/"
+
 2. For running from the command line, make sure the path to the project folder is inserted in the python path:
-    >>> sys.path.insert(0, "<full/path/to/>co_bandhead_disk_model/")
-3. That the `results` folder exists in the project folder with the star folders.
+
+.. code-block:: python
+
+    sys.path.insert(0, "<full/path/to/>co_bandhead_disk_model/")
+
+3. That the ``results`` folder exists in the project folder with the star folders.
     (e.g. `<full/path/to>/co_bandhead_disk_model/results/B268`)
+
 4. Check on local machine if all the imports work (if all necessary python packages are installed).
 
-Run this module from command line:
-python model/
+Run this module from command line as follows:
+
+.. code-block:: bash
+
+    $ python model/co_bandhead_grid
+
 """
 
 import os
@@ -51,12 +64,13 @@ grid = [tiv, pv, niv, qv, riv]
 
 def calculate_grid(thread_no):
     """
-    Calculates the full grid specified in this module,(or 1/16th of it, see thread_no)  for all the objects under
-    ``stars``; i.e., one grid per star. Results will be stored in the **results** folder with structure
+    Calculates the full grid specified in this module (or 1/16th of it, see ``thread_no``)  for all the objects under
+    ``stars``; i.e., one grid per star. Results will be stored in the ``results`` folder with structure
     **results/<star>/<grid_name>/*.npy**.
 
     :param thread_no: If `int`, it should be between 0 and 15; in which case for each integer 1/16th of the
-        grid will be calculated, so that the grid can be calculated parallel on 16 cores, by calling 16 times.
+        grid will be calculated, so that the grid can be calculated parallel on 16 cores, by calling this  function
+        16 times with ``thread_no`` = [0, ... ,15].
 
         If `None`, the full grid for all the stars will be calculated serially.
     :type thread_no: int or None
