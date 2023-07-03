@@ -23,8 +23,6 @@ import model.config as cfg
 import model.flat_disk_log_grid as fld
 
 
-cfg.get_and_convert_mag_naira()
-
 # 90000
 Ti = np.array([2000, 3000, 4000, 4500, 5000, 5500, 6000, 7000, 8000])  # 9
 p = np.array([0.5, 0.75, 1, 2, 3]) * -1  # 5

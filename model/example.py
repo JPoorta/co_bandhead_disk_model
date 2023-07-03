@@ -49,7 +49,8 @@ all_params = {"inc_deg": [40],  # 10,20,30,40,50,60,70,80
 def plot_star():
     star = all_params.get("stars")[0]
 
-    Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV, photometry = cfg.stel_parameter_dict.get(star)
+    Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(star)
+    photometry = cfg.photometry_dict.get(star)
     flux_phot, sigma_phot = np.stack(photometry[1]).T
     modelname, Ti_d, p_d, Ni_d, q_d, i_d, Ri_d_AU, gass_mass, chi_sq, chi_sq_red = cfg.best_dust_fit.get(star)
     wvl_sed, flux_sed, fl_star_ext, fl_dust_ext, flux_sed_not_ext = seds.SED_full(Ri_d_AU, Ti_d, p_d, Ni_d, q_d, i_d,

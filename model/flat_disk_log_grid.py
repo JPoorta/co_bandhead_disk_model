@@ -310,7 +310,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         # Get stellar parameters.
         # --------------------------------------------------------------
 
-        Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV, photometry = cfg.stel_parameter_dict.get(st)
+        Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(st)
         best_fit = cfg.best_dust_fit.get(st)
         Ri_d = best_fit[6] * cfg.AU
 

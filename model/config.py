@@ -326,51 +326,51 @@ def flux_ext(flux, wvl, a_v, r_v, dered=False):
     return tot_fl
 
 
-def get_and_convert_mag_naira(phot_frame=None, phot_dict=None):
+def get_and_convert_mag_naira(obj, phot_frame=None, phot_dict=None):
     """
-    Get and convert all the magnitudes to flux. Appends the photometric fluxes and errors for each object to
-    stel_parameter_dict.
+    Get and convert all the magnitudes to flux. Gets the photometric fluxes and errors for each object to
+    be collected in `photometry_dict`.
 
-    :param phot_frame:
-    :param phot_dict:
+    :param obj: (str) object name.
+    :param phot_frame: ``panda`` dataframe created from the photometry file.
+    :param phot_dict: dictionary with photometric flux zero's and wavelength points.
     :return: None
     """
     if phot_frame is None:
         phot_frame = phot_frame_m17
     if phot_dict is None:
         phot_dict = m17_phot_dict
-    for obj in phot_frame.index:
-        flux = []
-        wvl = []
-        for key in phot_dict.keys():
-            mag = phot_frame.loc[obj, key]
-            sigma_key = ('e_' + key).strip('um')
-            sigma = phot_frame.loc[obj, sigma_key]
-            if np.isfinite(mag):
-                wvl.append(phot_dict.get(key)[0])
-                flux.append(mag_to_flux(key, mag, phot_dict, sigma))
-        # Add additional fluxpoints for B275 and B331 'manually'.
-        if obj == 'B275':
-            wvl.extend([10.6, 20])
-            flux.append(jy_to_erg_s_cm2_um(np.array([1.9, 0.32]), 10.6))
-            flux.append(jy_to_erg_s_cm2_um(np.array([7.9, 0.5 * 7.9]), 20))
-        if obj == 'B331':
-            wvl.extend([9.8, 10.53, 11.7, 20.6, 37])
-            flux.append(jy_to_erg_s_cm2_um(np.array([1.5, 0.2]), 9.8))
-            flux.append(jy_to_erg_s_cm2_um(np.array([1.8, 0.3]), 10.53))
-            flux.append(jy_to_erg_s_cm2_um(np.array([2.1, 0.1]), 11.7))
-            flux.append(jy_to_erg_s_cm2_um(np.array([6.4, 0.87]), 20.6))
-            flux.append(jy_to_erg_s_cm2_um(np.array([21.89, 2.19]), 37))
 
-        # Get the indices of the corresponding points in wsil (for SED fitting).
-        ind = [np.argmin(abs(wsil - i)) for i in wvl]
-        phot_flux_ind = np.array([wvl, flux, ind], dtype=object)
-        stel_parameter_dict.get(obj).append(phot_flux_ind)
+    flux = []
+    wvl = []
+    for key in phot_dict.keys():
+        mag = phot_frame.loc[obj, key]
+        sigma_key = ('e_' + key).strip('um')
+        sigma = phot_frame.loc[obj, sigma_key]
+        if np.isfinite(mag):
+            wvl.append(phot_dict.get(key)[0])
+            flux.append(mag_to_flux(key, mag, phot_dict, sigma))
+    # Add additional fluxpoints for B275 and B331 'manually'.
+    if obj == 'B275':
+        wvl.extend([10.6, 20])
+        flux.append(jy_to_erg_s_cm2_um(np.array([1.9, 0.32]), 10.6))
+        flux.append(jy_to_erg_s_cm2_um(np.array([7.9, 0.5 * 7.9]), 20))
+    if obj == 'B331':
+        wvl.extend([9.8, 10.53, 11.7, 20.6, 37])
+        flux.append(jy_to_erg_s_cm2_um(np.array([1.5, 0.2]), 9.8))
+        flux.append(jy_to_erg_s_cm2_um(np.array([1.8, 0.3]), 10.53))
+        flux.append(jy_to_erg_s_cm2_um(np.array([2.1, 0.1]), 11.7))
+        flux.append(jy_to_erg_s_cm2_um(np.array([6.4, 0.87]), 20.6))
+        flux.append(jy_to_erg_s_cm2_um(np.array([21.89, 2.19]), 37))
 
-    return
+    # Get the indices of the corresponding points in wsil (for SED fitting).
+    ind = [np.argmin(abs(wsil - i)) for i in wvl]
+    phot_flux_ind = np.array([wvl, flux, ind], dtype=object)
+
+    return phot_flux_ind
 
 
-get_and_convert_mag_naira()
+photometry_dict = {obj:get_and_convert_mag_naira(obj) for obj in phot_frame_m17.index}
 
 #  FUNCTIONS
 
