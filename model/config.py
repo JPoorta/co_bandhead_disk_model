@@ -4,6 +4,10 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
+import sys
+
+sys.path.insert(0, "../")
+
 # CONSTANTS
 
 kB = 1.380649e-16  # Boltzman constant erg/K
