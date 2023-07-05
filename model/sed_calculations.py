@@ -1,3 +1,7 @@
+"""
+Contains a function to calculate an SED from dust-disk and stellar parameter input.
+"""
+
 import numpy as np
 
 import model.config as cfg

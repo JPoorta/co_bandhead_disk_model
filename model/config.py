@@ -1,3 +1,9 @@
+"""
+This script declares all global constants and parameters, reads in the necessary data (from aux_files),
+sets folder paths, contains widely used general functions (e.g. black body function) etc. Most parameters and
+functions are explained in docstrings and/or comments.
+"""
+
 import pickle
 
 import numpy as np
