@@ -8,16 +8,14 @@ To run the code and calculate (grids) of models the repository can be downloaded
 
 The exact environment (which was created under Python 3.7.5) used to develop the code can be found in `requirements.txt`. However, the code will likely work under any Python 3 distribution, once the essential packages `numpy`, `matplotlib`, `pandas`, and `scipy` are installed . 
 
-All relevant modules are in the ```model``` directory.  To get started run ``example.py`` which calculates a model and produces a few plots. From within the folder where the project is stored:
+All relevant modules are in the ```model``` directory.  To get started run ``example.py`` which calculates a few models and plots them. From within the folder where the project is stored, run:
 ```bash
 python -m model.example
 ```
-To calculate a full grid of models (WARNING: this takes a long time!):
+To calculate a full grid of models (WARNING: this takes a long time!), run the ``co_bandhead_grid.py``. Before doing so, make sure to follow the instructions at the beginning of that module (see [Documentation](#Documentation)). Then, from within the folder where the project is stored, run:
 ```bash
 python -m model.co_bandhead_grid
 ```
-Make sure to follow the instructions at the beginning of that module (see [Documentation](#Documentation)). 
-
 The (grid) parameters in ``example`` or ``co_bandhead_grid`` can easily be adjusted in the source files.
 
 ## Documentation
