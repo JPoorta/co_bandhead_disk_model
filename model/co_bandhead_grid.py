@@ -31,7 +31,6 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, "/home/johanna/PhD/github_codes/co_bandhead_disk_model/")
 import model.config as cfg
 import model.flat_disk_log_grid as fld
 
@@ -78,9 +77,9 @@ def calculate_grid(thread_no):
     """
     for star in stars:
         # Create the folders where the results are to be stored.
-        print(cfg.results_folder + star + '/' + grid_name)
+        print(cfg.results_folder / (star + '/' + grid_name))
         try:
-            os.mkdir(cfg.results_folder + star + '/' + grid_name)
+            os.mkdir(cfg.results_folder / (star + '/' + grid_name))
         except FileNotFoundError:
             print("Make sure a *results* folder exists in co_bandhead_disk_model containing one folder for each star.")
             return
