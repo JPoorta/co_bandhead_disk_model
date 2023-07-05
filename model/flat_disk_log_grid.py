@@ -1,3 +1,8 @@
+"""
+The module containing all the actual model grid calculations. More information can be found in the
+docstrings and in-code comments.
+"""
+
 from time import time
 
 import numpy as np
