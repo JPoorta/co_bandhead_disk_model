@@ -1,5 +1,7 @@
 """
-
+Run this module to quickly calculate and plot a set of models.
+Different parameter settings can be tested by changing input in :meth:`example.run` and defaults can be adapted in
+``grid_params`` or ``all_params`` (see source code).
 """
 
 import matplotlib.pyplot as plt
@@ -10,13 +12,31 @@ import model.sed_calculations as seds
 from model.flat_disk_log_grid import run_grid_log_r
 
 
-def run():
-    test_param = "dv0"  # "p"
-    test_param_array = [1, 2, 3]  # [-0.5, -0.75, -2]
+def run(test_param=None, test_param_array=None):
+    """
+    This method will be run when the module is called from the command line. It will calculate and plot a (set of)
+    model(s) with default settings and the option to test several values for one parameter. NOTE: it will calculate
+    the model(s) only for the first star specified in ``all_params[stars]``, unless `test_param` is "stars".
+
+    :param test_param: the name of the input parameter which for which a (set of) model(s) is to be calculated. This
+        can be any parameter listed in the dictionaries ``grid_params`` or ``all_params``.
+    :type test_param: str
+    :param test_param_array: list or array of values (can be only one) that test_param should take. In general
+        parameters cannot take just any value, so make sure to provide correct types and (more or less) physical values
+        where relevant. More information can be found in :meth:`flat_disk_log_grid.run_grid_log_r`.
+    :type test_param_array: array-like
+    :return:
+    """
+    if test_param is None:
+        test_param = "dv0"  # "p"
+    if test_param_array is None:
+        test_param_array = [1, 2, 3]  # [-0.5, -0.75, -2]
 
     run_test(test_param, test_param_array)
 
     plt.show()
+
+    return
 
 
 # DEFAULTS
@@ -51,6 +71,11 @@ all_params = {"inc_deg": [40],  # 10,20,30,40,50,60,70,80
 
 
 def plot_star():
+    """
+    Function to plot the SED and photometry of the first star specified under ``all_params[stars]``.
+
+    :return:
+    """
     star = all_params.get("stars")[0]
 
     Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(star)
@@ -67,13 +92,34 @@ def plot_star():
     plt.ylim(1.e-15, 1.e-9)
     plt.legend()
 
+    return
+
 
 def make_grid(Ti, p, Ni, q, Ri):
+    """
+    Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check
+    :meth:`flat_disk_log_grid.run_grid_log_r`.
+
+    :param Ti:
+    :param p:
+    :param Ni:
+    :param q:
+    :param Ri:
+    :return: numpy grid
+    """
     tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri, sparse=False)
     return [tiv, pv, niv, qv, riv]
 
 
 def run_test(test_param, test_param_array):
+    """
+    For each value in `test_param_array` calculate and plot a model with otherwise default values. For more
+    information on the input see :meth:`example.run`
+
+    :param test_param:
+    :param test_param_array:
+    :return:
+    """
     star = all_params.get("stars")[0]
 
     for value in test_param_array:

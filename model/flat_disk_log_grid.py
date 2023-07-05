@@ -220,9 +220,13 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
 
     :param grid: grid with 5 variables, created as follows by np.meshgrid:
-         >>> tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)
-         >>> grid = [tiv, pv, niv, qv, riv]
-         With Ti, p, Ni, q, Ri arrays or scalars:
+
+        .. code-block:: python
+
+            tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)
+            grid = [tiv, pv, niv, qv, riv]
+
+        With Ti, p, Ni, q, Ri arrays or scalars:
 
          - Ti: initial CO gas temperature  at Ri (in K).
          - p: power law exponent for the gas temperature (p<0).
