@@ -1,28 +1,18 @@
 """
 Run this module to calculate a grid of CO-bandhead spectra. Check a few things:
 
-1. In ``config.py`` set the correct project folder:
-
-.. code-block:: python
-
-    project_folder = "<full/path/to/>co_bandhead_disk_model/"
-
-2. For running from the command line, make sure the path to the project folder is inserted in the python path:
-
-.. code-block:: python
-
-    sys.path.insert(0, "<full/path/to/>co_bandhead_disk_model/")
-
-3. That the ``results`` folder exists in the project folder with the star folders.
+1. That a ``results`` folder exists in the project folder with the star folders.
     (e.g. `<full/path/to>/co_bandhead_disk_model/results/B268`)
 
-4. Check on local machine if all the imports work (if all necessary python packages are installed).
+2. Check on local machine if all the imports work (if all necessary python packages are installed).
 
 Run this module from command line as follows:
 
 .. code-block:: bash
 
-    $ python model/co_bandhead_grid
+    $ python -m model.co_bandhead_grid {i}
+
+with the optional argument `i` explained under :meth:`~model.calculate_grid`.
 
 """
 
