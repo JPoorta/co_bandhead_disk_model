@@ -32,7 +32,7 @@ M_sun = 1.988475e+33  # solar mass in gr
 
 # Various
 sampling = 2  # Shannon minimum sampling
-max_wvl = 2.48  # Maximum wavelength in micron - cut off used in co_bandhead
+max_wvl = 5  # Maximum wavelength in micron - cut off used in co_bandhead
 min_dv_cm = 1. * 1.e5  # velocity resolution in cm/s for construction of frequency and velocity arrays
 
 # Outer boundary temperature
@@ -76,8 +76,7 @@ d = 1.98e3 * pc
 # (according to the atomic data file with nJ = 120).
 
 onset_wvl_dict = {(1, 0): 4.2949, (2, 1): 4.3504, (3, 2): 4.4071, (4, 3): 4.4652, (5, 4): 4.5246, (6, 5): 4.5855,
-                  (7, 6): 4.6477,
-                  (8, 7): 4.7115, (9, 8): 4.7768, (10, 9): 4.8436,
+                  (7, 6): 4.6477, (8, 7): 4.7115, (9, 8): 4.7768, (10, 9): 4.8436,
                   (2, 0): 2.2935, (3, 1): 2.3227, (4, 2): 2.3525, (5, 3): 2.3829, (6, 4): 2.4141, (7, 5): 2.4461,
                   (3, 0): 1.5582, (4, 1): 1.5779, (5, 2): 1.5982, (6, 3): 1.6189, (7, 4): 1.6401, (8, 5): 1.6618,
                   (9, 6): 1.684, (10, 7): 1.7067, (11, 8): 1.73, (12, 9): 1.7538, (13, 10): 1.7783, (14, 11): 1.8033,
