@@ -269,7 +269,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
          - p: power law exponent for the gas temperature (p<0).
          - Ni: initial gas (H2) surface density at Ri (in cm^-2).
          - q: power law exponent for the gas surface density (q<0).
-         - Ri: initial radius for the powerlaws for the CO gas disk (in stellar radii R*).
+         - Ri: initial radius for the powerlaws for the CO gas disk (in AU).
     :param inc_deg: array of inclination(s) in degrees. This can only contain values from [10,20,30,40,50,60,70,80]
     :param stars: array of string(s) with the object names.
     :param dv0: (scalar or array) doppler width of the lines in km/s. If array, for each element the bandheads
@@ -285,8 +285,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         - If dust = False this parameter is ignored.
     :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)
     :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)
-    :param Rmin_in: (optional) initial radius for the CO gas disk (in stellar radii R*). If not provided defaults to Ri.
-    :param Rmax_in: (optional) outer radius for the CO gas disk (in stellar radii R*). If not provided defaults
+    :param Rmin_in: (optional) initial radius for the CO gas disk (in AU). If not provided defaults to Ri.
+    :param Rmax_in: (optional) outer radius for the CO gas disk (in AU). If not provided defaults
             to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different
             per grid point).
     :param print_Rs: (optional) boolean. If True information on the radial arrays is printed. (default = False)
@@ -426,7 +426,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             # ---------------------------------------------------------
             # Creation of the radial arrays.
             # ---------------------------------------------------------
-            ri = ri_R * cfg.R_sun * Rstar
+            ri = ri_R * cfg.AU
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
             if saved_list is not None:
@@ -435,12 +435,12 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     continue
 
             if Rmax_in is not None:
-                Rmax = Rmax_in * cfg.R_sun * Rstar
+                Rmax = Rmax_in * cfg.AU
             else:
                 Rmax = np.min(((cfg.min_T_gas / ti) ** (1 / p) * ri, cfg.r_max_def))
 
             if Rmin_in is not None:
-                Rmin = Rmin_in * cfg.R_sun * Rstar
+                Rmin = Rmin_in * cfg.AU
             else:
                 Rmin = ri
 
