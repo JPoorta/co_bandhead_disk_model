@@ -8,6 +8,7 @@ from time import time
 import numpy as np
 from scipy.integrate import fixed_quad
 from scipy.signal import fftconvolve
+import matplotlib.pyplot as plt
 
 import model.config as cfg
 import model.sed_calculations as seds
@@ -60,7 +61,8 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     return wvl, profile_dict
 
 
-def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None):
+def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
+                plot = False):
     """
     Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
     dust continuum.
@@ -90,6 +92,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     :type dust: Bool
     :param dust_params: H2 surface density and dust temperatures ifo R.
     :type dust_param: list of two 1D arrays of `len(R)`: [NH, T_dust]
+    :param plot: if True plot the CO optical depth for the first temperature in the T array on figure 7.
     :return: iff dust == `False`: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave)) and 3D
         array of shape `(len(dv0), len(R), len(wave))`.
 
@@ -102,9 +105,11 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     # Reading of the partition sums and calculation fractional level populations in LTE
     # -----------------------------------------------------------------------------
     Q = np.interp(T_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
-    x = (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / T_gas[:, None])
+    g_i = cfg.g_i_dict.get(cfg.species) # state indpedendent statistical weight factor, see config
+    x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / T_gas[:, None])
 
     # c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.
+    # The g_i factor in the statistical weights cancels out in the fraction and is therefore not explicitly included.
     lines = (A_einstein[None, :] / (8.0 * np.pi * freq_trans[None, :] ** 2)) * \
             (2. * jupper[None, :] + 1.) / (2. * jlower[None, :] + 1.) * \
             (1.0 - np.exp(-cfg.h * freq_trans[None, :] * cfg.c / cfg.kB / T_gas[:, None])) * x
@@ -118,6 +123,15 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
             alpha[j, ..., indices[j]] += lines[..., i][None, :] * gauss[j][:, None]
 
     tau_CO = alpha * NCO[None, :, None]  # optical depth of CO/gas
+
+    if plot:
+        plt.figure(7)
+        plt.title("tau_CO")
+        T = int(T_gas[0])
+        plt.plot(wave, tau_CO[0][0], label='T_eff=' + str(T) + " K", zorder=T)
+        plt.ylim(0.1, 7.e4)
+        plt.legend()
+        plt.xlabel("wvl (um)")
 
     # Source function gas in erg/s/cm^2/sr/micron
     BB_CO = cfg.planck_wvl(wave[None, :] / 1.e4, T_gas[:, None])
@@ -142,7 +156,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
         return S_tot, tau_tot, tau_cont, BB_dust
 
 
-def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, dF=False):
+def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, dF=False, plot = None):
     """
     Calculate the slab model flux (in erg/s/cm^2/micron) of a thin disk from source function and opacity per ring (R).
     Before integrating over R (optionally) convolve with velocity profiles using int_theta.
@@ -160,6 +174,9 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
             2 pi) for each radius (units (cm/s)^-1).
     :param dv: velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).
     :param dF: (boolean) if True calculate flux per ring.
+    :param plot: option to plot the convolved (fig 8) and unconvolved (fig 9) CO intensities along with
+    the source functions. To use pass a list or tuple containing a string and a parameter value, to be used for the
+    label. Tested for runs with different temperatures.
     :return: flux in erg/s/cm^2/micron and dF/dR: wavelength integrated flux per ring in erg/s/cm^2/cm.
             (Two 1D arrays with len(wvl).)
     """
@@ -171,12 +188,28 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
         intensity = S * (1. - np.exp(-tau / np.cos(i)))
 
     if convolve:
-        intensity_conv = np.zeros(intensity.shape)
-        for k in range(intensity.shape[0]):
-            intensity_conv[k, ...] = np.array([fftconvolve(intensity[k, j, :], int_theta[j, :], mode="same") * dv
-                                               for j in range(len(R))])
+        intensity_conv = np.array([fftconvolve(intensity[j,...], int_theta, mode="same", axes=-1) * dv
+                                   for j in range(intensity.shape[0])])
     else:
         intensity_conv = intensity * 2 * np.pi
+
+    if plot is not None:
+        plt.figure(8)
+        plt.title("Intensities")
+        p = plt.plot(wvl,intensity_conv[0][0],label= plot[0]+str(plot[1]))
+        c = p[0].get_color()
+        plt.plot(wvl, S[0], color=c, label="Source function (BB)")
+        plt.xlabel('wvl (um)')
+        plt.ylim(10 ** 4, 10 ** 10)
+        plt.legend()
+
+        plt.figure(9)
+        plt.title("Unconvolved intensities")
+        plt.plot(wvl,intensity[0][0]*2*np.pi,color= c,label= plot[0]+str(plot[1]))
+        plt.plot(wvl,S[0],color = c,label="Source function (BB)")
+        plt.xlabel('wvl (um)')
+        plt.ylim(10**4,10**10)
+        plt.legend()
 
     # Flux and differential of the flux.
     flux = np.array([np.trapz(intensity_conv[j, ...].T * R, x=R, axis=1) * np.cos(i) / cfg.d ** 2
@@ -188,17 +221,16 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
     return flux, dF
 
 
-def instrumental_profile(wvl, res, vupper=None, vlower=None, center_wvl=None):
+def instrumental_profile(wvl, res, center_wvl=None):
     """
     Calculates instrumental profile for convolution to compare with observations. The units of the instrumental
     profile are micron^-1; the convolution product should be multiplied by dx to approximate continuous convolution.
 
     :param wvl: wavelength array that goes with the flux, in micron.
     :param res: spectral resolution R of the observation.
-    :param vupper: array of upper vibrational quantum numbers. (optional, should be provided if no center_wvl is given)
-    :param vlower: array of lower vibrational quantum numbers. (optional, should be provided if no center_wvl is given)
     :param center_wvl: reference wavelength for resolution and pivot point for convolution (0-point velocity).
-            (optional, but either this or vupper and vlower should be provided).
+    (optional, any wavelength point in wvl is allowed, with no significant effects on the ip*dx result,
+     provided it is more than 5 sigma away from min or max)
     :return: a gaussian profile (in micron^-1) and the wavelength step dx in micron.
     """
 
@@ -206,7 +238,7 @@ def instrumental_profile(wvl, res, vupper=None, vlower=None, center_wvl=None):
     if center_wvl is not None:
         center = center_wvl
     else:
-        center = np.min([cfg.onset_wvl_dict.get((vu, vl)) for vu, vl in zip(vupper, vlower)])
+        center = np.median(wvl)
 
     sigma = center / res  # sigma in micron
     # Wavelengths in micron within 5 sigma.
@@ -398,7 +430,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
             if saved_list is not None:
-                if not np.any([filename == listed for listed in to_be_calculated]):
+                if not np.any([filename in listed for listed in to_be_calculated]):
                     print(filename + " skip")
                     continue
 
@@ -451,7 +483,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                 S_CO, tau_CO = co_bandhead(T_gas=T_gas, NCO=NCO, wave=wvl,
                                            A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                            freq_trans=freq_trans, Elow=Elow,
-                                           prof_dict=profile_dict, dust=False)
+                                           prof_dict=profile_dict, dust=False, plot=False)
                 R_CO_only = R_CO[CO_only]
 
             else:
@@ -501,7 +533,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
                     # CO flux where there is only gas.
                     flux_CO, dF_CO = calculate_flux(S_CO, tau_CO, i, R_CO_only, wvl,
-                                                    convolve=True, int_theta=int_theta_CO, dv=dv)
+                                                    convolve=True, int_theta=int_theta_CO, dv=dv,
+                                                    plot=None) # e.g. plot = ['T_eff= ',int(T_gas[0])])
 
                 # --------------------------------------------------------------
                 # Total fluxes for different cases.
@@ -529,7 +562,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     T_gas_mix = cfg.t_ex(R_dust[mix], ti, ri, p)
                     NCO_mix = cfg.nco(R_dust[mix], ni, ri, q)
 
-                    NH = cfg.nco(R_dust[mix], Ni_d, Ri_d, q_d) * cfg.H_CO
+                    NH = cfg.nco(R_dust[mix], Ni_d, Ri_d, q_d) * cfg.H_CO.get(cfg.species)
                     T_dust = cfg.t_ex(R_dust[mix], Ti_d, Ri_d, p_d)
 
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(T_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
@@ -586,7 +619,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     flux_cont_tot_ext = cfg.flux_ext(np.squeeze(flux_cont_tot), wvl, A_v, R_v)
                     flux_norm_ext = flux_tot_ext / flux_cont_tot_ext
 
-                    ip, dx = instrumental_profile(wvl, Res, vupper=vupper, vlower=vlower)
+                    ip, dx = instrumental_profile(wvl, Res)
                     obs_flux = np.convolve(flux_tot_ext, ip, mode="same") * dx
                     obs_flux_norm = np.convolve(flux_norm_ext, ip, mode="same") * dx
 
