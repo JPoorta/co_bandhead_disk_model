@@ -7,8 +7,7 @@ Different parameter settings can be tested by changing input in :meth:`example.r
 import matplotlib.pyplot as plt
 import numpy as np
 
-import model.config as cfg
-import model.sed_calculations as seds
+import processing_and_plotting.plotting_routines as pltr
 from model.flat_disk_log_grid import run_grid_log_r
 
 
@@ -70,31 +69,6 @@ all_params = {"inc_deg": [40],  # 10,20,30,40,50,60,70,80
               }
 
 
-def plot_star():
-    """
-    Function to plot the SED and photometry of the first star specified under ``all_params[stars]``.
-
-    :return:
-    """
-    star = all_params.get("stars")[0]
-
-    Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(star)
-    photometry = cfg.photometry_dict.get(star)
-    flux_phot, sigma_phot = np.stack(photometry[1]).T
-    modelname, Ti_d, p_d, Ni_d, q_d, i_d, Ri_d_AU, gass_mass, chi_sq, chi_sq_red = cfg.best_dust_fit.get(star)
-    wvl_sed, flux_sed, fl_star_ext, fl_dust_ext, flux_sed_not_ext = seds.SED_full(Ri_d_AU, Ti_d, p_d, Ni_d, q_d, i_d,
-                                                                                  star,
-                                                                                  A_v, R_v, num_r=200)
-    plt.loglog(wvl_sed, flux_sed, label="SED best fit")
-    plt.loglog(wvl_sed, fl_star_ext, label="star")
-    plt.errorbar(photometry[0], flux_phot, yerr=sigma_phot, fmt='o', color='k', label='photometry')
-    plt.xlim(0.4, 100)
-    plt.ylim(1.e-15, 1.e-9)
-    plt.legend()
-
-    return
-
-
 def make_grid(Ti, p, Ni, q, Ri):
     """
     Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check
@@ -145,30 +119,11 @@ def run_test(test_param, test_param_array):
 
         continuum_flux = flux_tot_ext / flux_norm_ext
 
-        plt.figure(0)
-        plt.title(star + " Continuum subtracted, extincted flux")
-        plt.plot(wvl, flux_tot_ext - continuum_flux, label=test_param + " = " + str(value))
-        plt.legend()
-
-        plt.figure(1)
-        plt.title(star + " Normalized flux")
-        plt.plot(wvl, flux_norm_ext, label=test_param + " = " + str(value))
-        plt.vlines([1.558, 1.5779, 1.5982], 0, 2, linestyles='dashed')
-        # plt.ylim(0.99,1.12)
-        plt.legend()
-
-        plt.figure(3)
-        plt.title(star + " Normalized, convolved flux")
-        plt.plot(wvl, conv_flux_norm, label=test_param + " = " + str(value))
-        # plt.ylim(0.99, 1.12)
-        plt.legend()
-
-        plt.figure(2)
-        plt.title(star)
-        plt.loglog(wvl, flux_tot_ext, label='total extincted flux; ' + test_param + " = " + str(value))
+        pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
+                                label=test_param + " = " + str(value))
 
     plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
-    plot_star()
+    pltr.plot_star(all_params.get("stars")[0])
 
     return
 
