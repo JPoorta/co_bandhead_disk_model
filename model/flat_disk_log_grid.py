@@ -42,6 +42,12 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     max_vel = np.log(min_wvl / max_wvl) / np.log(a) * dv
     vel = np.arange(0, max_vel, dv)
     wvl = min_wvl * np.power(np.ones(len(vel)) / a, np.arange(len(vel)))
+    prune_mask = np.ones(len(wvl), dtype=bool)
+    prune_mask[np.where(np.logical_and(wvl<2.25,wvl>1.85))] = False
+    if max_wvl>3:
+        prune_mask[np.where(np.logical_and(wvl<4.2,wvl>3.25))] = False
+
+    wvl = wvl[prune_mask]
 
     # --------------------------------------------------------------
     # Create a gaussian line profile (in frequency space) for each transition and every line width provided in dv0;
