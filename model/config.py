@@ -39,12 +39,12 @@ min_dv_cm = 1. * 1.e5  # velocity resolution in cm/s for construction of frequen
 min_T_gas = 600  # Minimum gas temperature that defines outer boundary of the model.
 
 # Default outer boundary for log_grid
-r_max_def = 500 * AU
+r_max_def = 100 * AU
 
 # Dust parameters
 radg = 1e-5  # grain radius in cm (0.1 micron)
 rho_grain = 2.0  # grain density (g/cm^3)
-mass_grain = rho_grain * (4/3) * np.pi * radg ** 3  # grain mass (g?)
+mass_grain = rho_grain * (4 / 3) * np.pi * radg ** 3  # grain mass (g?)
 max_T_dust = 1500  # maximum dust temperature
 min_dust_T = 0.01  # dust temperature used when dust is considered to be absent from the model
 gas_to_solid = 100  # canonical gas to dust ratio
@@ -56,6 +56,56 @@ stel_parameter_dict = {'B243': [6., 13000, 4.0, 7.5, 11300., 100, 4.7, 8.5, 20.2
                        'B268': [6., 12250, 4.0, 8.8, 11300., 100, 4.6, 8.1, 4.3],
                        'B163': [6., 8250, 3.5, 10.1, 11300., 100, 4.0, 13.21, 0.0],
                        'B331': [12., 13000, 4.0, 21.8, 11300, 100, 4.6, 13.3, 13.9]}
+
+# Best fit parameters from previous paper: T_i (K) [0], upper/lower errors [1], p [2], N_H_i [cm^-2] [3],
+# upper/lower errors [4], R_i [AU] [5], inclination (degrees) [6], v_G [7] from best fits, Table 7
+best_fit_params = {'B163': [4000, [1700, 1700], -3, 8.3e25, [96, 7.7], 0.155, 50, 1],
+                   'B243': [2000, [3000, 0], -3, 1.1e25, [15, 1], 0.488, 50, 1],
+                   'B268': [4500, [1000, 1000], -0.75, 3e25, [5.8, 2], 0.0941, 80, 2],
+                   'B275': [4000, [2500, 1000], -2, 3e25, [22, 2.6], 0.261, 30, 1],
+                   'B331': [3000, [2500, 1000], -3, 1.1e25, [17, 1], 0.486, 30, 1]}
+
+
+def get_default_params(star=None):
+    """
+    For a star return the default model parameters, mased on the best fit of the CO overtone bandheads.
+
+    :param star: (str) default is B275
+    :return: grid_ params and all_params dictionaries.
+    """
+    if star is None:
+        star = "B275"
+    t_i, t_i_err, p, n_h_i, n_h_i_err, r_i, inc, v_G = best_fit_params[star]
+
+    grid_params = {"Ri": r_i,
+                   "Ti": t_i,  # [500,1000,2500,4000] ,
+                   "p": p,  # [-0.5, -0.75, -2]
+                   "Ni": n_h_i,
+                   "q": -1.5,
+                   }
+
+    all_params = {"inc_deg": [inc],  # 10,20,30,40,50,60,70,80
+                  "stars": [star],  # , 'B243', 'B275', 'B163', 'B331']
+                  "dv0": [v_G],
+                  "vupper": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 2, 3, 4, 5, 6, 7],
+                  "vlower": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 1, 2, 3, 4, 5],
+                  "nJ": 150,
+                  "dust": True,
+                  "sed_best_fit": True,
+                  # From here on only optional parameters.
+                  "num_CO": 100,
+                  "num_dust": 200,
+                  "Rmin_in": None,
+                  "Rmax_in": None,
+                  "print_Rs": True,
+                  "convolve": True,
+                  "save": None,
+                  "maxmin": (1.3, 1.02),
+                  "lisa_it": None,
+                  "saved_list": None
+                  }
+
+    return grid_params, all_params
 
 # Best dust fit for each star (to avoid copying unnecessary data to LISA).
 best_dust_fit = {'B163': (
@@ -70,7 +120,7 @@ best_dust_fit = {'B163': (
         '400_-5.1_1e+21_-5.6_80_144.8', 400., -5.1, 1.e+21, -5.6, 80., 144.82933, 1.3624263e-05, 371.14423, 61.857372)}
 
 # Distance to the star in cm
-d = 1.98e3 * pc
+d = 1.7e3 * pc
 
 # Wavelengths of the lowest wavelength transition (the onset) of each bandhead in micron
 # (according to the atomic data file with nJ = 120).
@@ -383,7 +433,8 @@ def get_and_convert_mag_naira(obj, phot_frame=None, phot_dict=None):
     return phot_flux_ind
 
 
-photometry_dict = {obj:get_and_convert_mag_naira(obj) for obj in phot_frame_m17.index}
+photometry_dict = {obj: get_and_convert_mag_naira(obj) for obj in phot_frame_m17.index}
+
 
 #  FUNCTIONS
 
