@@ -9,9 +9,34 @@ import numpy as np
 
 import processing_and_plotting.plotting_routines as pltr
 from model.flat_disk_log_grid import run_grid_log_r
+import model.config as cfg
 
 
-def run(test_param=None, test_param_array=None):
+def exec():
+    grid_params, all_params = cfg.get_default_params()
+    # Adjust defaults if wanted (optional).
+
+    all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+               2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+               1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    all_params["vlower"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    all_params["dust"] = True
+    grid_params["p"] = -0.75
+    all_params["Rmax_in"] = 100
+
+
+    # set the parameter to be tested (optional).
+    test_param = "dust"  # "Ti"
+    test_param_array = [True, False]
+
+    run(grid_params, all_params, test_param, test_param_array)
+
+    return
+
+
+def run(grid_params, all_params, test_param=None, test_param_array=None):
     """
     This method will be run when the module is called from the command line. It will calculate and plot a (set of)
     model(s) with default settings and the option to test several values for one parameter. NOTE: it will calculate
@@ -31,42 +56,11 @@ def run(test_param=None, test_param_array=None):
     if test_param_array is None:
         test_param_array = [1, 2, 3]  # [-0.5, -0.75, -2]
 
-    run_test(test_param, test_param_array)
+    run_test(test_param, test_param_array, grid_params, all_params)
 
     plt.show()
 
     return
-
-
-# DEFAULTS
-
-grid_params = {"Ri": 4.8,
-               "Ti": 4000,  # [500,1000,2500,4000] ,
-               "p": -0.75,  # [-0.5, -0.75, -2]
-               "Ni": 3.e25,
-               "q": -1.5,
-               }
-
-all_params = {"inc_deg": [40],  # 10,20,30,40,50,60,70,80
-              "stars": ['B275'],  # , 'B243', 'B275', 'B163', 'B331']
-              "dv0": [1],
-              "vupper": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 2, 3, 4, 5, 6, 7],
-              "vlower": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 1, 2, 3, 4, 5],
-              "nJ": 150,
-              "dust": True,
-              "sed_best_fit": True,
-              # From here on only optional parameters.
-              "num_CO": 100,
-              "num_dust": 200,
-              "Rmin_in": None,
-              "Rmax_in": None,
-              "print_Rs": True,
-              "convolve": True,
-              "save": None,
-              "maxmin": (1.3, 1.02),
-              "lisa_it": None,
-              "saved_list": None
-              }
 
 
 def make_grid(Ti, p, Ni, q, Ri):
@@ -85,7 +79,7 @@ def make_grid(Ti, p, Ni, q, Ri):
     return [tiv, pv, niv, qv, riv]
 
 
-def run_test(test_param, test_param_array):
+def run_test(test_param, test_param_array, grid_params, all_params):
     """
     For each value in `test_param_array` calculate and plot a model with otherwise default values. For more
     information on the input see :meth:`example.run`
@@ -129,4 +123,4 @@ def run_test(test_param, test_param_array):
 
 
 if __name__ == "__main__":
-    run()
+    exec()

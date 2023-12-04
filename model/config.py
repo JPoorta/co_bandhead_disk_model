@@ -68,10 +68,10 @@ best_fit_params = {'B163': [4000, [1700, 1700], -3, 8.3e25, [96, 7.7], 0.155, 50
 
 def get_default_params(star=None):
     """
-    For a star return the default model parameters, mased on the best fit of the CO overtone bandheads.
+    For a star return the default model parameters, based on the best fit of the CO overtone bandheads.
 
     :param star: (str) default is B275
-    :return: grid_ params and all_params dictionaries.
+    :return: grid_params and all_params dictionaries.
     """
     if star is None:
         star = "B275"
