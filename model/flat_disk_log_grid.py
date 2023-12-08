@@ -43,9 +43,9 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     vel = np.arange(0, max_vel, dv)
     wvl = min_wvl * np.power(np.ones(len(vel)) / a, np.arange(len(vel)))
     prune_mask = np.ones(len(wvl), dtype=bool)
-    prune_mask[np.where(np.logical_and(wvl<2.25,wvl>1.85))] = False
-    if max_wvl>3:
-        prune_mask[np.where(np.logical_and(wvl<4.2,wvl>3.25))] = False
+    prune_mask[np.where(np.logical_and(wvl < 2.25, wvl > 1.85))] = False
+    if max_wvl > 3:
+        prune_mask[np.where(np.logical_and(wvl < 4.2, wvl > 3.25))] = False
 
     wvl = wvl[prune_mask]
 
@@ -68,7 +68,7 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
 
 
 def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
-                plot = False):
+                plot=False):
     """
     Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
     dust continuum.
@@ -111,7 +111,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     # Reading of the partition sums and calculation fractional level populations in LTE
     # -----------------------------------------------------------------------------
     Q = np.interp(T_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
-    g_i = cfg.g_i_dict.get(cfg.species) # state indpedendent statistical weight factor, see config
+    g_i = cfg.g_i_dict.get(cfg.species)  # state indpedendent statistical weight factor, see config
     x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / T_gas[:, None])
 
     # c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.
@@ -162,7 +162,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
         return S_tot, tau_tot, tau_cont, BB_dust
 
 
-def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, dF=False, plot = None):
+def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, dF=None, plot=None):
     """
     Calculate the slab model flux (in erg/s/cm^2/micron) of a thin disk from source function and opacity per ring (R).
     Before integrating over R (optionally) convolve with velocity profiles using int_theta.
@@ -179,12 +179,13 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
             velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,
             2 pi) for each radius (units (cm/s)^-1).
     :param dv: velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).
-    :param dF: (boolean) if True calculate flux per ring.
+    :param dF: (None or str) if given should specify the filename to which the arrays can be saved that are needed to
+            calculate flux per ring.
     :param plot: option to plot the convolved (fig 8) and unconvolved (fig 9) CO intensities along with
     the source functions. To use pass a list or tuple containing a string and a parameter value, to be used for the
     label. Tested for runs with different temperatures.
-    :return: flux in erg/s/cm^2/micron and dF/dR: wavelength integrated flux per ring in erg/s/cm^2/cm.
-            (Two 1D arrays with len(wvl).)
+    :return: flux in erg/s/cm^2/micron (1D arrays with len(wvl))
+     and the filename for the saved arrays to calculate dF or None.
     """
 
     # Intensity (optionally) convolved with velocity profile (int_theta).
@@ -194,7 +195,7 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
         intensity = S * (1. - np.exp(-tau / np.cos(i)))
 
     if convolve:
-        intensity_conv = np.array([fftconvolve(intensity[j,...], int_theta, mode="same", axes=-1) * dv
+        intensity_conv = np.array([fftconvolve(intensity[j, ...], int_theta, mode="same", axes=-1) * dv
                                    for j in range(intensity.shape[0])])
     else:
         intensity_conv = intensity * 2 * np.pi
@@ -202,7 +203,7 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
     if plot is not None:
         plt.figure(8)
         plt.title("Intensities")
-        p = plt.plot(wvl,intensity_conv[0][0],label= plot[0]+str(plot[1]))
+        p = plt.plot(wvl, intensity_conv[0][0], label=plot[0] + str(plot[1]))
         c = p[0].get_color()
         plt.plot(wvl, S[0], color=c, label="Source function (BB)")
         plt.xlabel('wvl (um)')
@@ -211,18 +212,17 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
 
         plt.figure(9)
         plt.title("Unconvolved intensities")
-        plt.plot(wvl,intensity[0][0]*2*np.pi,color= c,label= plot[0]+str(plot[1]))
-        plt.plot(wvl,S[0],color = c,label="Source function (BB)")
+        plt.plot(wvl, intensity[0][0] * 2 * np.pi, color=c, label=plot[0] + str(plot[1]))
+        plt.plot(wvl, S[0], color=c, label="Source function (BB)")
         plt.xlabel('wvl (um)')
-        plt.ylim(10**4,10**10)
+        plt.ylim(10 ** 4, 10 ** 10)
         plt.legend()
 
     # Flux and differential of the flux.
     flux = np.array([np.trapz(intensity_conv[j, ...].T * R, x=R, axis=1) * np.cos(i) / cfg.d ** 2
                      for j in range(intensity.shape[0])])
-    if dF:
-        dF = np.array([np.trapz(intensity_conv[j, ...].T * R * np.cos(i) / cfg.d ** 2, x=wvl, axis=0)
-                       for j in range(intensity.shape[0])])
+    if "dF" in dF:
+        np.save(dF, [wvl, intensity_conv, R])
 
     return flux, dF
 
@@ -257,7 +257,7 @@ def instrumental_profile(wvl, res, center_wvl=None):
 
 def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best_fit, num_CO=100,
                    num_dust=200, Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
-                   maxmin=(1.3, 1.02), lisa_it=None, saved_list=None):
+                   maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None):
     """
     Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
@@ -311,6 +311,9 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             star name) which contains a list of filenames of the models that need to be calculated (all other models
             will be skipped!). To be used if large parts of the parameter space in a grid are models that don't get
             saved anyway as for e.g. low (<0.5) p values.
+    :param dF: (None or str) if provided, the necessary arrays to calculate the cumulative flux are saved to the results
+            folder of the relevant star in a folder starting with "dF". The string will be appended to this folder name.
+            If an empty string: arrays are saved to dF. If None, nothing is saved.
     :return: the wavelength array and a 2D array containing the normalized fluxes for each inclination and
             the last gridpoint in grid.
 
@@ -435,6 +438,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             ri = ri_R * cfg.AU
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
+            if dF is not None:
+                dF = str(cfg.results_folder / st / ("dF"+dF) / filename)
+            else:
+                dF = ""
+
             if saved_list is not None:
                 if not np.any([filename in listed for listed in to_be_calculated]):
                     print(filename + " skip")
@@ -540,7 +548,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # CO flux where there is only gas.
                     flux_CO, dF_CO = calculate_flux(S_CO, tau_CO, i, R_CO_only, wvl,
                                                     convolve=True, int_theta=int_theta_CO, dv=dv,
-                                                    plot=None) # e.g. plot = ['T_eff= ',int(T_gas[0])])
+                                                    plot=None, dF=dF + "_CO")  # e.g. plot = ['T_eff= ',int(T_gas[0])])
 
                 # --------------------------------------------------------------
                 # Total fluxes for different cases.
@@ -580,7 +588,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # ---------------------------------------------------------
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
-                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl)
+                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl, dF=dF + "_dust" )
 
                     # ---------------------------------------------------------
                     # Total continuum if inclination dependent.
@@ -597,7 +605,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                                                 args=(vel_Kep, R_dust[mix], Mstar, i), n=100)[0]
 
                     flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_dust[mix], wvl,
-                                                      convolve=True, int_theta=int_theta_dust, dv=dv)
+                                                      convolve=True, int_theta=int_theta_dust, dv=dv, dF=dF + "_mix")
 
                     # ---------------------------------------------------------
                     # Total flux of all parts before extinction.
