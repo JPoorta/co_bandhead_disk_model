@@ -1,7 +1,14 @@
 """
-Run this module to quickly calculate and plot a set of models.
+Run this module to quickly calculate and plot a set of models with default settings and the option to test several
+    values for one parameter. NOTE: it will calculate the model(s) only for the first star specified in
+    ``all_params[stars]``, unless `test_param` is "stars".
 Different parameter settings can be tested by changing input in :meth:`example.run` and defaults can be adapted in
-``grid_params`` or ``all_params`` (see source code).
+``grid_params`` or ``all_params``.
+``test_param`` (str) the name of the input parameter which for which a (set of) model(s) is to be calculated. This
+        can be any parameter listed in the dictionaries ``grid_params`` or ``all_params``.
+``test_param_array`` (array-like) list or array of values (can be only one) that test_param should take. In general
+        parameters cannot take just any value, so make sure to provide correct types and (more or less) physical values
+        where relevant. More information can be found in :meth:`flat_disk_log_grid.run_grid_log_r`.
 """
 
 import matplotlib.pyplot as plt
@@ -12,49 +19,27 @@ from model.flat_disk_log_grid import run_grid_log_r
 import model.config as cfg
 
 
-def exec():
-    grid_params, all_params = cfg.get_default_params()
-    # Adjust defaults if wanted (optional).
+def run():
 
-    all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-               2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-               1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    all_params["vlower"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    all_params["dust"] = True
-    grid_params["p"] = -0.75
-    all_params["Rmax_in"] = 100
-
+    star = "B275"
+    grid_params, all_params = cfg.get_default_params(star)
 
     # set the parameter to be tested (optional).
-    test_param = "dust"  # "Ti"
-    test_param_array = [True, False]
+    test_param = "p"  # "Ti"
+    test_param_array = [-2, ]
 
-    run(grid_params, all_params, test_param, test_param_array)
-
-    return
-
-
-def run(grid_params, all_params, test_param=None, test_param_array=None):
-    """
-    This method will be run when the module is called from the command line. It will calculate and plot a (set of)
-    model(s) with default settings and the option to test several values for one parameter. NOTE: it will calculate
-    the model(s) only for the first star specified in ``all_params[stars]``, unless `test_param` is "stars".
-
-    :param test_param: the name of the input parameter which for which a (set of) model(s) is to be calculated. This
-        can be any parameter listed in the dictionaries ``grid_params`` or ``all_params``.
-    :type test_param: str
-    :param test_param_array: list or array of values (can be only one) that test_param should take. In general
-        parameters cannot take just any value, so make sure to provide correct types and (more or less) physical values
-        where relevant. More information can be found in :meth:`flat_disk_log_grid.run_grid_log_r`.
-    :type test_param_array: array-like
-    :return:
-    """
-    if test_param is None:
-        test_param = "dv0"  # "p"
-    if test_param_array is None:
-        test_param_array = [1, 2, 3]  # [-0.5, -0.75, -2]
+    # Adjust defaults if wanted (optional).
+    all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                            2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    all_params["vlower"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    all_params["dust"] = True
+    grid_params["p"] = -2
+    all_params["Rmax_in"] = 100
+    all_params["dF"] = None
+    all_params["num_CO"] = 100
 
     run_test(test_param, test_param_array, grid_params, all_params)
 
@@ -63,19 +48,19 @@ def run(grid_params, all_params, test_param=None, test_param_array=None):
     return
 
 
-def make_grid(Ti, p, Ni, q, Ri):
+def make_grid(ti, p, ni, q, ri):
     """
     Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check
     :meth:`flat_disk_log_grid.run_grid_log_r`.
 
-    :param Ti:
+    :param ti:
     :param p:
-    :param Ni:
+    :param ni:
     :param q:
-    :param Ri:
+    :param ri:
     :return: numpy grid
     """
-    tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri, sparse=False)
+    tiv, pv, niv, qv, riv = np.meshgrid(ti, p, ni, q, ri, sparse=False)
     return [tiv, pv, niv, qv, riv]
 
 
@@ -86,6 +71,8 @@ def run_test(test_param, test_param_array, grid_params, all_params):
 
     :param test_param:
     :param test_param_array:
+    :param grid_params:
+    :param all_params:
     :return:
     """
     star = all_params.get("stars")[0]
@@ -123,4 +110,4 @@ def run_test(test_param, test_param_array, grid_params, all_params):
 
 
 if __name__ == "__main__":
-    exec()
+    run()

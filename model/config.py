@@ -77,10 +77,10 @@ def get_default_params(star=None):
         star = "B275"
     t_i, t_i_err, p, n_h_i, n_h_i_err, r_i, inc, v_G = best_fit_params[star]
 
-    grid_params = {"Ri": r_i,
-                   "Ti": t_i,  # [500,1000,2500,4000] ,
+    grid_params = {"ri": r_i,
+                   "ti": t_i,  # [500,1000,2500,4000] ,
                    "p": p,  # [-0.5, -0.75, -2]
-                   "Ni": n_h_i,
+                   "ni": n_h_i,
                    "q": -1.5,
                    }
 
@@ -106,6 +106,7 @@ def get_default_params(star=None):
                   }
 
     return grid_params, all_params
+
 
 # Best dust fit for each star (to avoid copying unnecessary data to LISA).
 best_dust_fit = {'B163': (
@@ -195,7 +196,7 @@ def load_inc_dust_dict(st):
         return pickle.load(f)
 
 
-def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None):
+def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None):
     """
     Standardized filename for saving grid items.
 
@@ -206,16 +207,20 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None):
     :param ri_r: (float) initial (reference) disk radius in stellar radii.
     :param dv: (int or float) gaussian width in km/s. (The None option is retained for older model grids,
         that don't vary dv.)
+    :param extra_param: (int or float) implemented to name varied parameters that are not in the original grid
+        (like dust, yes or no, or outer radius) but not yet used. Possibly redundant.
     :return: (str) name of the model file
     """
+    base_str = str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
+               + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
+               + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
+    full_name = base_str
     if dv is not None:
-        return str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
-            + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-            + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1)) + '_dv' + '{0:g}'.format(dv)
-    else:
-        return str(np.int(ti)) + '_' + str(np.around(p, 2)) + '_' \
-            + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-            + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
+        full_name = full_name + '_dv' + '{0:g}'.format(dv)
+    if extra_param is not None:
+        full_name = full_name + '{1:g}'.format(extra_param)
+
+    return full_name
 
 
 # Molecular data
