@@ -9,6 +9,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
 
 import os
 from pathlib import Path
@@ -121,6 +122,12 @@ best_dust_fit = {'B163': (
         8.655411), 'B331': (
         '400_-5.1_1e+21_-5.6_80_144.8', 400., -5.1, 1.e+21, -5.6, 80., 144.82933, 1.3624263e-05, 371.14423, 61.857372)}
 
+# 0 modelname, 1 Ti_d, 2 p_d, 3 Ni_d, 4 q_d, 5 i_d, 6 Ri_d_AU, 7 R_turn, 8 beta, 9 r_out (AU)
+best_dust_fit_ALMA = {'B243': ('', 1500., -1, 2.51103e+25, -1.3, 50, 1.7, 21, 0.53, 68),
+                      'B268': ('', 1500., -1, 1.04626e+24, -0.31, 80., 1.8, 40, 0.2, 60),
+                      'B275': ('', 1500., -1, 3.58719e+24, -0.32, 30, 4.1, 55, 0.18, 60),
+                      'B331': ('', 1500., -1, 2.48114e+24, -0.1, 30, 8.5, 45, 10, 51)}
+
 # Distance to the star in cm
 d = 1.7e3 * pc
 
@@ -169,6 +176,9 @@ g_i_dict = {"12C16O": 1, "13C16O": 2}
 N12CO_N13CO = 89
 H_CO = {"12C16O": 1.e4, "13C16O": 1.e4 * N12CO_N13CO}
 dust_data = aux_files / 'eps_Sil'
+dust_data_alma = aux_files / "dust_opacities_ossenkopf_1994.dat"
+ice_dict = {0: ["no ice mantle", '-'], 1: ["thick ice mantle", '..'],
+            2: ["thin ice mantle", '--']}  # dictionary for dust opacities
 photometry = aux_files / 'photometry'
 photometry_naira = aux_files / 'photometry_naira'
 # Wavelength array onto which all models are interpolated before saving. Created by including all data points beyond
@@ -176,6 +186,43 @@ photometry_naira = aux_files / 'photometry_naira'
 obj_wvl_array = aux_files / "wvl_obj.npy"
 # Name of the pickle file where the best fits for the preferred grid is stored.
 best_fits_dict = aux_files / 'best_fits_dict'
+
+
+def get_dust_opacities(plot=False):
+    """
+    Get the dust opacities from Ossenkopf V., Henning T <Astron. Astrophys. 291, 943 (1994)> sorted in a dictionary.
+    Mass absorption coefficients for MRN size distributions in cm^2/g.
+    Example usage of output dictionary for thin ice mantle, density 10^6:
+    >>> dust_opacity_dict.get(10**6)[2]
+    :return: Wavelength array, dictionary with gas densities (0, 10^5 - 10^8) as key and the three kappa arrays as
+    values.
+    K0: no ice mantles
+    K1: thick ice mantles
+    K2: thin ice mantles
+    """
+
+    nH_rows = np.array(np.split(np.loadtxt(dust_data_alma, delimiter='|', usecols=[0, 1, 2, 4, 6]), 5)).T
+    wvl = nH_rows[1, :, 0]
+    nH = nH_rows[0, 0, :]
+    opacity_dict = {}
+    for i, nH in enumerate(nH):
+        opacity_dict[nH] = nH_rows[2:, :, i]
+        if plot:
+            for j in [2, 4]:
+                ice_mantle, linest = ice_dict.get(j - 2)
+                plt.title(ice_mantle)
+                if j == 2:
+                    p, = plt.loglog(wvl, nH_rows[j, :, i], linest,
+                                    label="nH = " + '{0:.2g}'.format(nH) + " " + ice_mantle)
+                else:
+                    plt.loglog(wvl, nH_rows[j, :, i], linest, c=p.get_color(),
+                               label="nH = " + '{0:.2g}'.format(nH) + " " + ice_mantle)
+
+    return wvl, opacity_dict
+
+
+# Get the dust opacities for further use.
+dust_wvl_alma, dust_opacity_dict_alma = get_dust_opacities(plot=True)
 
 
 # Pickle file location and extraction function for the dictionaries with the best dust fits per inclination.
