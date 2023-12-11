@@ -51,11 +51,12 @@ gas_to_solid = 100  # canonical gas to dust ratio
 
 # Stellar parameters and extinction
 # [stellar mass from track in M_sun,T_eff(K),log_g,stellar radius in R_sun, Resolution, SNR, R_v,A_v, RV(in km/s)]
-stel_parameter_dict = {'B243': [6., 13000, 4.0, 7.5, 11300., 100, 4.7, 8.5, 20.2],
-                       'B275': [8., 13000, 3.5, 11.7, 11300., 100, 3.8, 6.7, -11.2],
-                       'B268': [6., 12250, 4.0, 8.8, 11300., 100, 4.6, 8.1, 4.3],
-                       'B163': [6., 8250, 3.5, 10.1, 11300., 100, 4.0, 13.21, 0.0],
-                       'B331': [12., 13000, 4.0, 21.8, 11300, 100, 4.6, 13.3, 13.9]}
+stel_parameter_dict = {'B275': [7.2, 12750, 3.44, 9.5,  11300., 100, 3.8, 7.41, -11.2],
+                       'B331': [10.0, 13000, 4.13, 18.7, 11300, 100, 4.6, 13.3, 13.9],
+                       'B243': [4.2, 11900, 3.78, 4.6, 11300., 100, 4.7, 7.92, 20.2],
+                       'B268': [4.5, 11300, 3.78, 5.6, 11300., 100, 4.6, 7.51, 4.3],
+                       'B163': [6.0, 8250, 3.63, 8.7, 11300., 100, 4.0, 13.21, 0.0],
+                       }
 
 # Best fit parameters from previous paper: T_i (K) [0], upper/lower errors [1], p [2], N_H_i [cm^-2] [3],
 # upper/lower errors [4], R_i [AU] [5], inclination (degrees) [6], v_G [7] from best fits, Table 7
