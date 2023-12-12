@@ -222,7 +222,7 @@ def get_dust_opacities(plot=False):
 
 
 # Get the dust opacities for further use.
-dust_wvl_alma, dust_opacity_dict_alma = get_dust_opacities(plot=True)
+dust_wvl_alma, dust_opacity_dict_alma = get_dust_opacities(plot=False)
 
 
 # Pickle file location and extraction function for the dictionaries with the best dust fits per inclination.
@@ -492,8 +492,16 @@ photometry_dict = {obj: get_and_convert_mag_naira(obj) for obj in phot_frame_m17
 #  FUNCTIONS
 
 
-def planck_wvl(x, temp):  # erg/s/cm2/micron (with x in cm)
-    return 2 * h * c ** 2 / x ** 5 / (np.exp(h * c / kB / temp / x) - 1) * 1.e-4
+def planck_wvl(wvl_um, t):
+    """
+    Black body function.
+    :param wvl_um: (scalar or array)  wavelength in micron.
+    :param t: (scalar or array) temperature in K.
+    :return: black body flux at temperature t, as a function of x in erg/s/cm2/micron.
+    """
+    # Convert micron to cm.
+    wvl_cm = wvl_um * 1e-4
+    return 2 * h * c ** 2 / wvl_cm ** 5 / (np.exp(h * c / kB / t / wvl_cm) - 1) * 1e-4
 
 
 def planck_freq(x, temp):
