@@ -140,7 +140,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
         plt.xlabel("wvl (um)")
 
     # Source function gas in erg/s/cm^2/sr/micron
-    BB_CO = cfg.planck_wvl(wave[None, :] / 1.e4, T_gas[:, None])
+    BB_CO = cfg.planck_wvl(wave[None, :], T_gas[:, None])
 
     if not dust:
 
@@ -153,7 +153,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
                         * 2 * cfg.mass_proton / cfg.mass_grain / cfg.gas_to_solid
         tau_cont = np.array([np.interp(wave, cfg.wsil[::-1], tau_cont_wsil[nh, :][::-1]) for nh in range(len(NH))])
         # Source function dust erg/s/cm^2/sr/micron
-        BB_dust = cfg.planck_wvl(wave[None, :] / 1.e4, T_dust[:, None])
+        BB_dust = cfg.planck_wvl(wave[None, :], T_dust[:, None])
         # Total optical depth
         tau_tot = tau_CO + tau_cont[None, :, :]
         # Total source function erg/s/cm^2/sr/micron
@@ -439,7 +439,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
             if dF is not None:
-                dF = str(cfg.results_folder / st / ("dF"+dF) / filename)
+                dF = str(cfg.results_folder / st / ("dF" + dF) / filename)
             else:
                 dF = ""
 
@@ -588,7 +588,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # ---------------------------------------------------------
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
-                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl, dF=dF + "_dust" )
+                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl, dF=dF + "_dust")
 
                     # ---------------------------------------------------------
                     # Total continuum if inclination dependent.
