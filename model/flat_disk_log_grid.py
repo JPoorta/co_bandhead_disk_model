@@ -381,8 +381,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         # --------------------------------------------------------------
 
         Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(st)
-        best_fit = cfg.best_dust_fit.get(st)
-        Ri_d = best_fit[6] * cfg.AU
+        modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
+
+        ri_d = ri_d_AU * cfg.AU
+        sed_params = {"obj": st, "ri": ri_d_AU, "ni": ni_d, "ti": 1500, "p": p_d, "inc": i_d, "r_out": r_out_AU,
+                      "q": q_d, "opacities": [1e8, 0], "beta": beta, "r_half": r_turn, "wvl":wvl}
 
         # --------------------------------------------------------------
         # Best dust fit parameters (iff dust = True) and continuum fluxes for different cases.
@@ -397,8 +400,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                                           st, A_v, R_v, wvl=wvl, num_r=num_dust)[4]
                 inc_dust_dict[element] = (fit, flux_cont)
 
-            best_fit_cont = seds.SED_full(best_fit[6], best_fit[1], best_fit[2], best_fit[3], best_fit[4], best_fit[5],
-                                          st, A_v, R_v, wvl=wvl, num_r=num_dust)[4]
+            best_fit_cont = seds.full_sed_alma(**sed_params)[0]
 
             if sed_best_fit:
                 flux_cont_tot = best_fit_cont
@@ -459,8 +461,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                 Rmin = ri
 
             R_CO = np.geomspace(Rmin, Rmax, num=num_CO)
-            CO_only = (R_CO < Ri_d)
-            R_dust = np.geomspace(Ri_d, cfg.r_max_def, num=num_dust)
+            CO_only = (R_CO < ri_d)
+            R_dust = np.geomspace(ri_d, cfg.r_max_def, num=num_dust)
             mix = (R_dust <= R_CO[-1])
 
             dust_in_gas = not np.array_equal(R_CO, R_CO[CO_only])
@@ -576,8 +578,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     T_gas_mix = cfg.t_ex(R_dust[mix], ti, ri, p)
                     NCO_mix = cfg.nco(R_dust[mix], ni, ri, q)
 
-                    NH = cfg.nco(R_dust[mix], Ni_d, Ri_d, q_d) * cfg.H_CO.get(cfg.species)
-                    T_dust = cfg.t_ex(R_dust[mix], Ti_d, Ri_d, p_d)
+                    NH = cfg.nco(R_dust[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species)
+                    T_dust = cfg.t_ex(R_dust[mix], ti_d, ri_d, p_d)
 
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(T_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,

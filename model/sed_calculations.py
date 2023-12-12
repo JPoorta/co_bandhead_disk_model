@@ -67,3 +67,101 @@ def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=None, num_r=200, R_max=N
         flux_tot = fl_dust_ext + fl_star_ext
 
         return wvl, flux_tot, fl_star_ext, fl_dust_ext, flux_tot_not_ext
+
+
+def full_sed_alma(obj, **sed_params):
+    """
+    Calculate a full (star+dust) extincted and non-extincted SED in units erg/s/cm2/micron for an object, as a function
+    of the wavelength array given in sed_params.
+    :param obj: (str) object name.
+    :param sed_params: (dict) parameters to be passed on to the dust sed (dust_sed)
+    :return: a full extincted SED in units erg/s/cm2/micron.
+    """
+    dust_sed, dust_sed_ext = sed_dust_alma(obj, **sed_params)  # dust seds
+    wvl = sed_params["wvl"]
+    flux_star = cfg.stellar_cont(obj, wvl)
+    r_v, a_v = cfg.stel_parameter_dict.get(obj)[6:8]
+    fl_star_ext = cfg.flux_ext(flux_star, wvl, a_v, r_v)
+
+    return dust_sed + flux_star, dust_sed_ext + fl_star_ext
+
+
+def sed_dust_alma(obj, ri, ni, wvl, ti=1500, p=-0.5, inc=45, r_out=None, q=-1.5,
+                  opacities=None, dust_to_gas=None, beta=None, r_half=None, dflux=False):
+    """
+    Calculate the dust emission based on disk parameters, dust opacities in function of the wavelength array that comes
+    with the opacities.
+
+    :param obj: (string) object name.
+    :param ri: inner disk radius in AU, default is taken to be the point where the dust sublimation temperature 1500 K
+    is reached.
+    :param ni: gas mass column density at ri in g/cm**2, if not provided based on CO results.
+    :param wvl: wavelength array
+    :param ti: dust temperature at ri (default 1500).
+    :param p: temperature power law exponent.
+    :param inc: inclination of the disk in degrees.
+    :param r_out: outer disk radius in AU. If neither mass nor r_out is provided, defaults to half the ALMA resolution.
+    :param q: column density power law exponent.
+    :param opacities: a 2-item list containing the preferred density and an integer referring to ice-coating: 0 for no,
+    2 for thin ice coating (1: thick is irrelevant). Default: [1e6, 2]
+    :param dust_to_gas: the dust to gas mass ratio. If provided the ratio is (the provided) constant throughout the
+    disk, regardless of input beta and r_half. If not provided a logistic function is used based on beta and
+    r_half. If nothing is provided defaults to the dust to gas ratio defined in config.
+    :param beta: (float) the rate of growth for the dust to gas ratio as a logistic function of r (only if both beta
+    and r_half are provided and dust_to_gas is None).
+    :param r_half: (float) radius at which half the final dust to gas ratio is reached in the logistic function of r
+    determining the dust to gas ratio (only if both beta and r_half are provided and dust_to_gas is None).
+    :param dflux: if True, do not return the total flux, but the cumulative flux in function of [radius, wvl].
+    :return: both the unextincted and extincted flux in units of erg/s/cm2/micron.
+    """
+
+    t_s, log_g, r_s, logL, r_v, a_v = cfg.stel_parameter_dict.get(obj)[1:7]
+
+    inc *= np.pi / 180  # convert inclination to radians
+
+    r = np.linspace(ri, r_out, num=400)
+    nh = ni * (r / ri) ** q * 2 * cfg.mass_proton  # number density to mass density
+    tdust = ti * (r / ri) ** p
+    r *= cfg.AU
+
+    if dust_to_gas is not None:
+        dust_to_gas = np.ones(len(nh)) * dust_to_gas
+    elif beta is not None and r_half is not None:
+        dust_to_gas = logistic_func_gas_dust_ratio(r, beta=beta, rhalf=r_half)
+    else:
+        dust_to_gas = np.ones(len(nh)) / cfg.gas_to_solid
+
+    kappa = cfg.dust_opacity_dict_alma.get(opacities[0])[2]
+    kappa_int = np.interp(wvl, cfg.dust_wvl_alma, kappa)
+    tau = nh[:, None] * dust_to_gas[:, None] * kappa_int[None, :]  # opacities in function of [radius,wavelength]
+    bb_dust = cfg.planck_wvl(wvl[None, :], tdust[:, None])  # source function in function of [radius, wvl]
+
+    intensity = bb_dust * (1 - np.exp(-tau / np.cos(inc)))  # intensity in function of [radius, wvl]
+    flux = 2 * np.pi * np.trapz(intensity.T * r, x=r) * np.cos(inc) / cfg.d ** 2  # integrate over r to obtain flux
+    if dflux:  # normalized cumulative flux in function of [radius, wvl]
+        dflux = np.zeros_like(intensity)
+        for j in range(len(r)):
+            dflux[j, :] = 2 * np.pi * np.trapz(intensity[:j, :].T * r[:j], x=r[:j]) * np.cos(inc) / cfg.d ** 2 / flux
+        return dflux
+
+    flux_ext = cfg.flux_ext(flux, wvl, a_v, r_v)
+
+    return flux, flux_ext
+
+
+def logistic_func_gas_dust_ratio(r, beta, rhalf=None, final_ratio1=1e-8, final_ratio2=0.01):
+    """
+    The dust to gas ratio as a function of r.
+
+    :param r: radial points array in cm
+    :param beta: power law exponent determining the rate of growth of the logistic curve.
+    :param rhalf: radius in AU at which half the ratio is reached.
+    :param final_ratio1: baseline ratio (at r << rhalf)
+    :param final_ratio2: limiting ratio at (r >> rhalf)
+    :return: The gas to dust ratio as a logistic function of r.
+    """
+    radii = r / cfg.AU
+    if rhalf is None:
+        rhalf = radii[50]
+
+    return final_ratio2 / (1 + np.exp(-beta * (radii - rhalf))) + final_ratio1
