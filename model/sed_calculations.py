@@ -44,8 +44,7 @@ def SED_full(Ri, Ti, p, Ni, q, inc, star, A_v, R_v, wvl=None, num_r=200, R_max=N
     else:
         R, NH, Tdust = dust_params
 
-    # Optical depth of the dust -> Should it not be 2*protonmass (H2 and not H)?:
-    # yes, implemented 03-02-2020.
+    # Optical depth of the dust.
     tau = (((np.pi * cfg.radg ** 2) * cfg.Qabs[None, :]) * NH[:, None] *
            2 * cfg.mass_proton / cfg.mass_grain / cfg.gas_to_solid)
     tau_int = np.array([np.interp(wvl, cfg.wsil[::-1], tau[r, :][::-1]) for r in range(len(R))])
@@ -95,7 +94,7 @@ def sed_dust_alma(obj, ri, ni, wvl, ti=1500, p=-0.5, inc=45, r_out=None, q=-1.5,
     :param obj: (string) object name.
     :param ri: inner disk radius in AU, default is taken to be the point where the dust sublimation temperature 1500 K
     is reached.
-    :param ni: gas mass column density at ri in g/cm**2, if not provided based on CO results.
+    :param ni: gas number column density at ri in cm**-2.
     :param wvl: wavelength array
     :param ti: dust temperature at ri (default 1500).
     :param p: temperature power law exponent.
@@ -131,7 +130,7 @@ def sed_dust_alma(obj, ri, ni, wvl, ti=1500, p=-0.5, inc=45, r_out=None, q=-1.5,
     else:
         dust_to_gas = np.ones(len(nh)) / cfg.gas_to_solid
 
-    kappa = cfg.dust_opacity_dict_alma.get(opacities[0])[2]
+    kappa = cfg.dust_opacity_dict_alma.get(opacities[0])[opacities[1]]
     kappa_int = np.interp(wvl, cfg.dust_wvl_alma, kappa)
     tau = nh[:, None] * dust_to_gas[:, None] * kappa_int[None, :]  # opacities in function of [radius,wavelength]
     bb_dust = cfg.planck_wvl(wvl[None, :], tdust[:, None])  # source function in function of [radius, wvl]
