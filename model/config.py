@@ -123,10 +123,11 @@ best_dust_fit = {'B163': (
         '400_-5.1_1e+21_-5.6_80_144.8', 400., -5.1, 1.e+21, -5.6, 80., 144.82933, 1.3624263e-05, 371.14423, 61.857372)}
 
 # 0 modelname, 1 Ti_d, 2 p_d, 3 Ni_d, 4 q_d, 5 i_d, 6 Ri_d_AU, 7 R_turn, 8 beta, 9 r_out (AU)
-best_dust_fit_ALMA = {'B243': ('', 1500., -1, 2.51103e+25, -1.3, 50, 1.7, 21, 0.53, 68),
-                      'B268': ('', 1500., -1, 1.04626e+24, -0.31, 80., 1.8, 40, 0.2, 60),
-                      'B275': ('', 1500., -1, 3.58719e+24, -0.32, 30, 4.1, 55, 0.18, 60),
-                      'B331': ('', 1500., -1, 2.48114e+24, -0.1, 30, 8.5, 45, 10, 51)}
+best_dust_fit_ALMA = {'B163': ('', 1500., -1, 3.05762e+24),
+                      'B243': ('', 1500., -1, 2.36156e+25, -2, 50, 1.7, 14, 0.84, 68),
+                      'B268': ('', 1500., -1, 1.04626e+24, -0.8, 80., 1.8, 38, 0.2, 60),
+                      'B275': ('', 1500., -1, 3.88612e+24, -1.1, 30, 4.1, 50, 0.2, 60),
+                      'B331': ('', 1500., -1, 2.48114e+24, -0.8, 30, 8.5, 47, 10, 51)}
 
 # Distance to the star in cm
 d = 1.7e3 * pc
@@ -223,6 +224,7 @@ def get_dust_opacities(plot=False):
 
 # Get the dust opacities for further use.
 dust_wvl_alma, dust_opacity_dict_alma = get_dust_opacities(plot=False)
+default_opacities = [1e8, 0]
 
 
 # Pickle file location and extraction function for the dictionaries with the best dust fits per inclination.
