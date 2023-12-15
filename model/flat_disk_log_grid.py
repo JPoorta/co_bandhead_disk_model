@@ -67,14 +67,14 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     return wvl, profile_dict
 
 
-def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
+def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
                 plot=False):
     """
     Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
     dust continuum.
 
-    :param T_gas: Temperature of the CO gas in function of R.
-    :type T_gas: 1D array with `len(R)`
+    :param t_gas: Temperature of the CO gas in function of R.
+    :type t_gas: 1D array with `len(R)`
     :param NCO: Surface number density (in cm^-2) of the CO gas in function of R.
     :type NCO: 1D array with `len(R)`
     :param wave: wavelength array for which the output is wanted.
@@ -97,7 +97,7 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     :param dust: if True dust is included and dust_params has to be provided. If False no continuum is returned.
     :type dust: Bool
     :param dust_params: H2 surface density and dust temperatures ifo R.
-    :type dust_param: list of two 1D arrays of `len(R)`: [NH, T_dust]
+    :type dust_params: list of two 1D arrays of `len(R)`: [NH, T_dust]
     :param plot: if True plot the CO optical depth for the first temperature in the T array on figure 7.
     :return: iff dust == `False`: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave)) and 3D
         array of shape `(len(dv0), len(R), len(wave))`.
@@ -110,17 +110,17 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     # -----------------------------------------------------------------------------
     # Reading of the partition sums and calculation fractional level populations in LTE
     # -----------------------------------------------------------------------------
-    Q = np.interp(T_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
+    Q = np.interp(t_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
     g_i = cfg.g_i_dict.get(cfg.species)  # state indpedendent statistical weight factor, see config
-    x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / T_gas[:, None])
+    x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / t_gas[:, None])
 
     # c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.
     # The g_i factor in the statistical weights cancels out in the fraction and is therefore not explicitly included.
     lines = (A_einstein[None, :] / (8.0 * np.pi * freq_trans[None, :] ** 2)) * \
             (2. * jupper[None, :] + 1.) / (2. * jlower[None, :] + 1.) * \
-            (1.0 - np.exp(-cfg.h * freq_trans[None, :] * cfg.c / cfg.kB / T_gas[:, None])) * x
+            (1.0 - np.exp(-cfg.h * freq_trans[None, :] * cfg.c / cfg.kB / t_gas[:, None])) * x
 
-    alpha = np.zeros((len(prof_dict.get(freq_trans[0])[0]), len(T_gas),
+    alpha = np.zeros((len(prof_dict.get(freq_trans[0])[0]), len(t_gas),
                       len(wave)))  # tau_CO = alpha * NCO (alpha is CO optical depth per particle)
 
     for i in range(lines.shape[1]):
@@ -133,14 +133,14 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     if plot:
         plt.figure(7)
         plt.title("tau_CO")
-        T = int(T_gas[0])
+        T = int(t_gas[0])
         plt.plot(wave, tau_CO[0][0], label='T_eff=' + str(T) + " K", zorder=T)
         plt.ylim(0.1, 7.e4)
         plt.legend()
         plt.xlabel("wvl (um)")
 
     # Source function gas in erg/s/cm^2/sr/micron
-    BB_CO = cfg.planck_wvl(wave[None, :], T_gas[:, None])
+    BB_CO = cfg.planck_wvl(wave[None, :], t_gas[:, None])
 
     if not dust:
 
@@ -149,17 +149,17 @@ def co_bandhead(T_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     else:
         NH, T_dust = dust_params
 
-        tau_cont_wsil = ((np.pi * cfg.radg ** 2) * cfg.Qabs[None, :]) * NH[:, None] \
-                        * 2 * cfg.mass_proton / cfg.mass_grain / cfg.gas_to_solid
-        tau_cont = np.array([np.interp(wave, cfg.wsil[::-1], tau_cont_wsil[nh, :][::-1]) for nh in range(len(NH))])
-        # Source function dust erg/s/cm^2/sr/micron
-        BB_dust = cfg.planck_wvl(wave[None, :], T_dust[:, None])
+        kappa = cfg.dust_opacity_dict_alma.get(cfg.default_opacities[0])[cfg.default_opacities[1]]
+        kappa_int = np.interp(wave, cfg.dust_wvl_alma, kappa)
+        tau_cont = NH[:, None] * kappa_int[None, :]  # opacities in function of [radius,wavelength]
+        bb_dust = cfg.planck_wvl(wave[None, :], T_dust[:, None])  # source function in function of [radius, wvl]
+
         # Total optical depth
         tau_tot = tau_CO + tau_cont[None, :, :]
         # Total source function erg/s/cm^2/sr/micron
-        S_tot = (tau_CO * BB_CO[None, :, :] + tau_cont[None, :, :] * BB_dust[None, :, :]) / tau_tot
+        S_tot = (tau_CO * BB_CO[None, :, :] + tau_cont[None, :, :] * bb_dust[None, :, :]) / tau_tot
 
-        return S_tot, tau_tot, tau_cont, BB_dust
+        return S_tot, tau_tot, tau_cont, bb_dust
 
 
 def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, dF=None, plot=None):
@@ -176,8 +176,8 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
             calculate the flux per ring (integration over wvl - dF).
     :param convolve: if True intensities will be convolved with a velocity profile provided through int_theta.
     :param int_theta: (2D array of shape (len(R), len(vel_Kep)) where vel_Kep represents an array of Keplerian
-            velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,
-            2 pi) for each radius (units (cm/s)^-1).
+            velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring,
+            i.e., 2 pi) for each radius (units (cm/s)^-1).
     :param dv: velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).
     :param dF: (None or str) if given should specify the filename to which the arrays can be saved that are needed to
             calculate flux per ring.
@@ -285,20 +285,21 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
     :param nJ: number of rotational transitions to be taken into account.
     :param dust: boolean. If True dust is included. If False the continuum is assumed to be stellar only.
     :param sed_best_fit: boolean.
-        - If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are adopted
-        (including inclination).
-        - If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the continuum.
+        - If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are
+        adopted (including inclination).
+        - If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the
+        continuum.
         - If dust = False this parameter is ignored.
     :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)
     :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)
     :param Rmin_in: (optional) initial radius for the CO gas disk (in AU). If not provided defaults to Ri.
     :param Rmax_in: (optional) outer radius for the CO gas disk (in AU). If not provided defaults
-            to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different
-            per grid point).
+            to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence
+            different per grid point).
     :param print_Rs: (optional) boolean. If True information on the radial arrays is printed. (default = False)
     :param convolve: (optional) boolean. If True the fluxes are convolved with the instrumental profile and
-            returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes are
-            saved regardless of the value of save. (default = False)
+            returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes
+            are saved regardless of the value of save. (default = False)
     :param save: (optional) string specifying the name of the folder where the normalized bandheads and the wavelength
             array are to be saved. If not provided, nothing is saved. (default = None)
     :param maxmin: (optional) tuple (max, min). The maximum and minimum values maximum normalized flux points can take.
@@ -384,21 +385,14 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
 
         ri_d = ri_d_AU * cfg.AU
-        sed_params = {"obj": st, "ri": ri_d_AU, "ni": ni_d, "ti": 1500, "p": p_d, "inc": i_d, "r_out": r_out_AU,
-                      "q": q_d, "opacities": [1e8, 0], "beta": beta, "r_half": r_turn, "wvl":wvl}
+        sed_params = {"obj": st, "ri": ri_d_AU, "ni": ni_d, "ti": ti_d, "p": p_d, "inc": i_d, "r_out": r_out_AU,
+                      "q": q_d, "opacities": cfg.default_opacities, "beta": beta, "r_half": r_turn, "wvl": wvl}
 
         # --------------------------------------------------------------
         # Best dust fit parameters (iff dust = True) and continuum fluxes for different cases.
         # --------------------------------------------------------------
 
         if dust:
-            # 0 modelname, 1 Ti_d, 2 p_d, 3 Ni_d, 4 q_d, 5 i_d, 6 Ri_d_AU, gas_mass, chi_sq, chi_sq_red
-            inc_dust_dict = cfg.load_inc_dust_dict(st)
-            for element in inc_deg:
-                fit = inc_dust_dict.get(element)[0]
-                flux_cont = seds.SED_full(fit[6], fit[1], fit[2], fit[3], fit[4], fit[5],
-                                          st, A_v, R_v, wvl=wvl, num_r=num_dust)[4]
-                inc_dust_dict[element] = (fit, flux_cont)
 
             best_fit_cont = seds.full_sed_alma(**sed_params)[0]
 
@@ -451,7 +445,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     continue
 
             if Rmax_in is not None:
-                Rmax = Rmax_in * cfg.AU
+                Rmax = np.min((Rmax_in, r_out_AU)) * cfg.AU  # the outer radius is maximally as constrained by ALMA
             else:
                 Rmax = np.min(((cfg.min_T_gas / ti) ** (1 / p) * ri, cfg.r_max_def))
 
@@ -462,7 +456,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
             R_CO = np.geomspace(Rmin, Rmax, num=num_CO)
             CO_only = (R_CO < ri_d)
-            R_dust = np.geomspace(ri_d, cfg.r_max_def, num=num_dust)
+            R_dust = np.geomspace(ri_d, Rmax, num=num_dust)
             mix = (R_dust <= R_CO[-1])
 
             dust_in_gas = not np.array_equal(R_CO, R_CO[CO_only])
@@ -496,7 +490,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             if gas_only_exist:
                 T_gas = cfg.t_ex(R_CO[CO_only], ti, ri, p)
                 NCO = cfg.nco(R_CO[CO_only], ni, ri, q)
-                S_CO, tau_CO = co_bandhead(T_gas=T_gas, NCO=NCO, wave=wvl,
+                S_CO, tau_CO = co_bandhead(t_gas=T_gas, NCO=NCO, wave=wvl,
                                            A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                            freq_trans=freq_trans, Elow=Elow,
                                            prof_dict=profile_dict, dust=False, plot=False)
@@ -525,7 +519,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                 # Continuum flux was calculated earlier.
                 T_gas = cfg.t_ex(R_CO, ti, ri, p)
                 NCO = cfg.nco(R_CO, ni, ri, q)
-                S_CO, tau_CO = co_bandhead(T_gas=T_gas, NCO=NCO, wave=wvl, A_einstein=A_einstein,
+                S_CO, tau_CO = co_bandhead(t_gas=T_gas, NCO=NCO, wave=wvl, A_einstein=A_einstein,
                                            jlower=jlower, jupper=jupper, freq_trans=freq_trans, Elow=Elow,
                                            prof_dict=profile_dict, dust=False)
 
@@ -550,7 +544,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # CO flux where there is only gas.
                     flux_CO, dF_CO = calculate_flux(S_CO, tau_CO, i, R_CO_only, wvl,
                                                     convolve=True, int_theta=int_theta_CO, dv=dv,
-                                                    plot=None, dF=dF + "_CO")  # e.g. plot = ['T_eff= ',int(T_gas[0])])
+                                                    plot=None, dF=dF + "_CO")  # e.g. plot = ['T_eff= ',int(t_gas[0])])
 
                 # --------------------------------------------------------------
                 # Total fluxes for different cases.
@@ -566,10 +560,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # Dust is included, and gas and dust overlap. Flux_mix has to be calculated.
                     # --------------------------------------------------------------
 
-                    # Find the best dust fit for this inclination.
-                    modelname, Ti_d, p_d, Ni_d, q_d, i_d, Ri_d_AU, gas_mass, chi_sq, chi_sq_red = inc_dust_dict.get(
-                        inc_deg[j])[0]
-
                     # ---------------------------------------------------------
                     # Temperatures, densities and source function for parts where gas and dust overlap.
                     # (The dust has its own parameters, independent of the gas, dependent on the inclination.)
@@ -578,10 +568,12 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     T_gas_mix = cfg.t_ex(R_dust[mix], ti, ri, p)
                     NCO_mix = cfg.nco(R_dust[mix], ni, ri, q)
 
-                    NH = cfg.nco(R_dust[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species)
+                    dust_to_gas = seds.logistic_func_gas_dust_ratio(R_dust[mix], beta=beta, rhalf=r_turn)
+                    NH = cfg.nco(R_dust[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
+                         * dust_to_gas * 2 * cfg.mass_proton # dust mass column density
                     T_dust = cfg.t_ex(R_dust[mix], ti_d, ri_d, p_d)
 
-                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(T_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
+                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                                                     freq_trans=freq_trans, Elow=Elow,
                                                                     prof_dict=profile_dict,
