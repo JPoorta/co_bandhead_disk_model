@@ -238,3 +238,5 @@ fabric.properties
 
 # Project folders
 results/
+tests_and_tryouts/
+aux_files/best_fits_and_data/

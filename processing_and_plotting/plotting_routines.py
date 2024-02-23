@@ -29,6 +29,21 @@ def plot_star(star):
     return
 
 
+def plot_obs_spectrum(star):
+    """
+    Function to read the observed and fitted spectra of CO paper I (Poorta et al., 2023)
+
+    :param star: (str)
+    :return:
+    """
+    wvl_obj, flux_obj, wvl, conv_flux, fit_mask = np.load(str(cfg.spectra_dir) + "/" + star + ".npy", allow_pickle=True)
+    plt.plot(wvl_obj, flux_obj, label="data")
+    plt.plot(wvl, conv_flux, label="best fit")
+    plt.legend()
+
+    return
+
+
 def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux, label):
     """
 
@@ -41,7 +56,6 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     :param label:
     :return:
     """
-
 
     plt.figure(0)
     plt.title(star + " Continuum subtracted, extincted flux")

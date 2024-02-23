@@ -165,6 +165,8 @@ aux_files = project_folder / "aux_files/"
 
 # folder with Kurucz models
 Kurucz_dir = aux_files / "Castelli-Kurucz/"
+# folder for NIR-spectra
+spectra_dir = aux_files / "best_fits_and_data"
 # Atomic data.
 species = "12C16O"
 atomic_data = aux_files / ("hitran_table_" + species)
