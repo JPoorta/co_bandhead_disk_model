@@ -588,7 +588,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # Total continuum if inclination dependent.
                     # ---------------------------------------------------------
                     if not sed_best_fit:
-                        flux_cont_tot = inc_dust_dict.get(inc_deg[j])[1]
+                        flux_cont_tot = seds.full_sed_alma(**sed_params)[0] #inc_dust_dict.get(inc_deg[j])[1]
 
                     # ---------------------------------------------------------
                     # Total flux from of part where gas and dust overlap.
