@@ -80,3 +80,22 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     plt.loglog(wvl, flux_tot_ext, label='total extincted flux; ' + label)
 
     return
+
+
+def plot_t_structure_gas():
+
+    plt.figure(5)
+    r_tot = np.concatenate((R_CO_only, R_dust[mix]))
+    t_tot = np.concatenate((T_gas, T_gas_mix))
+    plt.loglog(r_tot / cfg.AU, t_tot, label=p)
+    plt.loglog(R_dust[mix] / cfg.AU, T_dust, label="dust")
+    plt.legend()
+
+
+def plot_t_structure_dust(r_dust, t_dust):
+
+
+
+    plt.figure(5)
+    plt.loglog(R_dust[mix] / cfg.AU, T_dust, label="dust")
+    plt.legend()

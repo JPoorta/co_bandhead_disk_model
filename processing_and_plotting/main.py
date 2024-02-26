@@ -13,7 +13,7 @@ def run():
 
     # set the parameter to be tested (optional).
     test_param = "p"  # "Ti"
-    test_param_array = [-0.5, -0.75, -1, -2]
+    test_param_array = [-2, -3 ,-5] # [-0.5, -0.75, -1, -2]
 
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                             2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -28,7 +28,7 @@ def run():
 
     for value in test_param_array:
         grid_params[test_param] = value
-        gp = Gridpoint.Gridpoint(**grid_params, star=star, sub_folder = "dF")
+        gp = Gridpoint.Gridpoint(**grid_params, star=star, sub_folder = "dF_almadust_p2_-0.5") # "dF"
         df.plot_cum_flux(gp)
 
     plt.legend()
