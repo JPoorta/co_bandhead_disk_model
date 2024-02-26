@@ -255,7 +255,7 @@ def instrumental_profile(wvl, res, center_wvl=None):
     return ip, dx
 
 
-def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best_fit, num_CO=100,
+def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=100,
                    num_dust=200, Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
                    maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None):
     """
@@ -283,13 +283,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
     :param vupper: list of upper level(s) of the vibrational transition(s).
     :param vlower: list of lower level(s) of the vibrational transition(s).
     :param nJ: number of rotational transitions to be taken into account.
-    :param dust: boolean. If True dust is included. If False the continuum is assumed to be stellar only.
-    :param sed_best_fit: boolean.
-        - If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are
-        adopted (including inclination).
-        - If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the
-        continuum.
-        - If dust = False this parameter is ignored.
+    :param dust: boolean. If True dust is included. If False the total continuum (for normalizing) still includes dust,
+    but the gas emission is calculated without involving dust.
     :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)
     :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)
     :param Rmin_in: (optional) initial radius for the CO gas disk (in AU). If not provided defaults to Ri.
@@ -382,29 +377,17 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
         # --------------------------------------------------------------
 
         Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(st)
-        modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
 
+        # --------------------------------------------------------------
+        # Continuum flux (not extincted), always includes stellar and dust continuum (also when dust==False).
+        # Based on SED fit of object. Independent of inclination of gas disk.
+        # --------------------------------------------------------------
+
+        modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
         ri_d = ri_d_AU * cfg.AU
         sed_params = {"obj": st, "ri": ri_d_AU, "ni": ni_d, "ti": ti_d, "p": p_d, "inc": i_d, "r_out": r_out_AU,
                       "q": q_d, "opacities": cfg.default_opacities, "beta": beta, "r_half": r_turn, "wvl": wvl}
-
-        # --------------------------------------------------------------
-        # Best dust fit parameters (iff dust = True) and continuum fluxes for different cases.
-        # --------------------------------------------------------------
-
-        if dust:
-
-            best_fit_cont = seds.full_sed_alma(**sed_params)[0]
-
-            if sed_best_fit:
-                flux_cont_tot = best_fit_cont
-
-        elif not dust:
-            # --------------------------------------------------------------
-            # No dust: Only stellar continuum.
-            # --------------------------------------------------------------
-
-            flux_cont_tot = cfg.stellar_cont(st, wvl)
+        flux_cont_tot = seds.full_sed_alma(**sed_params)[0]
 
         # --------------------------------------------------------------
         # ITERATIONS OVER THE GRID.
@@ -502,13 +485,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
             # --------------------------------------------------------------
             #
             # --------------------------------------------------------------
-            if not dust_in_gas and dust:
-                # --------------------------------------------------------------
-                # Dust is included and gas and dust are separate.
-                # --------------------------------------------------------------
-
-                # Continuum flux (not extincted).
-                flux_cont_tot = best_fit_cont
 
             if not dust and dust_in_gas:
                 # --------------------------------------------------------------
@@ -570,7 +546,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
 
                     dust_to_gas = seds.logistic_func_gas_dust_ratio(R_dust[mix], beta=beta, rhalf=r_turn)
                     NH = cfg.nco(R_dust[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
-                         * dust_to_gas * 2 * cfg.mass_proton # dust mass column density
+                         * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
                     T_dust = cfg.t_ex(R_dust[mix], ti_d, ri_d, p_d)
 
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
@@ -583,12 +559,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, sed_best
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
                     flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl, dF=dF + "_dust")
-
-                    # ---------------------------------------------------------
-                    # Total continuum if inclination dependent.
-                    # ---------------------------------------------------------
-                    if not sed_best_fit:
-                        flux_cont_tot = seds.full_sed_alma(**sed_params)[0] #inc_dust_dict.get(inc_deg[j])[1]
 
                     # ---------------------------------------------------------
                     # Total flux from of part where gas and dust overlap.

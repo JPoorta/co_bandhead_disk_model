@@ -25,8 +25,8 @@ def run():
     grid_params, all_params = cfg.get_default_params(star)
 
     # set the parameter to be tested (optional).
-    test_param = "p"  # "Ti"
-    test_param_array = [-2, ]
+    test_param = "dust"  # "Ti"
+    test_param_array = [True]
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
