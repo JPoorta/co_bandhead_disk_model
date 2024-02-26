@@ -44,6 +44,15 @@ def plot_obs_spectrum(star):
     return
 
 
+def plot_275_checks(wvl):
+
+    alma_dust = np.load(cfg.spectra_dir / "B275_alma_dust.npy")
+    no_dust = np.load(cfg.spectra_dir / "B275_no_dust.npy")
+    plt.plot(wvl, alma_dust, label="alma_dust")
+    plt.plot(wvl, no_dust, label="no dust")
+    plt.legend()
+
+
 def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux, label):
     """
 
