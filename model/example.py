@@ -37,7 +37,7 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    all_params["Rmax_in"] = 100
+    all_params["Rmax_in"] = None
     all_params["dF"] = None
     all_params["num_CO"] = 100
 
@@ -103,8 +103,11 @@ def run_test(test_param, test_param_array, grid_params, all_params):
         pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
                                 label=test_param + " = " + str(value))
 
+
     plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
     pltr.plot_star(all_params.get("stars")[0])
+    plt.figure(3)
+    pltr.plot_obs_spectrum(all_params["stars"][0])
 
     return
 
