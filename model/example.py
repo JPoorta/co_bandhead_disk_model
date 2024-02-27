@@ -26,7 +26,7 @@ def run():
 
     # set the parameter to be tested (optional).
     test_param = "dust"  # "Ti"
-    test_param_array = [True]
+    test_param_array = [False, True]
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -37,7 +37,7 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    all_params["Rmax_in"] = None
+    all_params["Rmax_in"] = 100
     all_params["dF"] = None
     all_params["num_CO"] = 100
 

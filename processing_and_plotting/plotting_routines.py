@@ -44,21 +44,28 @@ def plot_obs_spectrum(star):
     return
 
 
-def plot_275_checks(wvl, no_dust=False):
+def plot_275_checks(wvl, no_dust=False, rmax_in=False):
     """
     Plots the original best fit model for B275 after ALMA dust SED implementation.
 
     :param wvl: model wavelength array
     :param no_dust: (Bool) if True plot the original dust=False option, in which the spectrum was only normalized
     to stellar continuum.
+    :param rmax_in: (Bool) if True plot the best fit model after ALMA dust SED, after R_dust was removed from
+    flat_disk_log_grid, with extended disk upto 60 AU (Rmax_in=100; defaults to ALMA outer disk radius). This model
+    gives some absorption, and otherwise differs minimally from alma_dust because the 100 radial points (num_CO)
+    now run upto 60 AU instead of ~0.67 AU.
     :return:
     """
 
     alma_dust = np.load(cfg.spectra_dir / "B275_alma_dust.npy")
-    plt.plot(wvl, alma_dust, label="alma_dust")
+    plt.plot(wvl, alma_dust, label="alma_dust", zorder=-1)
     if no_dust:
         no_dust = np.load(cfg.spectra_dir / "B275_no_dust.npy")
-        plt.plot(wvl, no_dust, label="no dust")
+        plt.plot(wvl, no_dust, label="no dust", zorder=-1)
+    if rmax_in:
+        rmax_in100 = np.load(cfg.spectra_dir / "B275_Rmax_in_100.npy")
+        plt.plot(wvl, rmax_in100, label="Rmax_in=100 (Rmax=60)", zorder=-1)
     plt.legend()
 
 

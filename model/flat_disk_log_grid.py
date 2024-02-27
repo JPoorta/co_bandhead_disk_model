@@ -379,8 +379,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
         Mstar, T_eff, log_g, Rstar, Res, SNR, R_v, A_v, RV = cfg.stel_parameter_dict.get(st)
 
         # --------------------------------------------------------------
-        # Continuum flux (not extincted), always includes stellar and dust continuum (also when dust==False).
-        # Based on SED fit of object. Independent of inclination of gas disk.
+        # Continuum flux (not extincted), always includes stellar and dust continuum (also when dust=False).
+        # Based on SED fit of object. Independent of inclination and outer radius (Rmax) of gas disk.
         # --------------------------------------------------------------
 
         modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
@@ -437,13 +437,16 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             else:
                 Rmin = ri
 
+            # --------------------------------------------------------------
+            # Dust and gas can overlap (dust_in_gas=True), and if the gas disk starts (Rmin) earlier than the dust
+            # (ri_d) there is a part of the disk with only gas (gas_only_exist).
+            # --------------------------------------------------------------
             R_CO = np.geomspace(Rmin, Rmax, num=num_CO)
             CO_only = (R_CO < ri_d)
-            R_dust = np.geomspace(ri_d, Rmax, num=num_dust)
-            mix = (R_dust <= R_CO[-1])
+            mix = (R_CO >= ri_d)
 
-            dust_in_gas = not np.array_equal(R_CO, R_CO[CO_only])
-            gas_only_exist = (len(R_CO[CO_only]) > 0)
+            dust_in_gas = ri_d <= Rmax
+            gas_only_exist = Rmin < ri_d
 
             # --------------------------------------------------------------
             # Create velocity array for velocity profiles per ring.
@@ -461,8 +464,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 to_print = '\n R_max = ' + str((R_CO[-1]) / cfg.AU) + ' AU' \
                            + '\n R = ' + str(R_CO / cfg.AU) + ' AU, ' \
                            + '\n length R_CO =' + str(len(R_CO[CO_only])) \
-                           + '\n length R_CO_dust =' + str(len(R_dust[mix])) \
-                           + '\n length R_dust[~mix] =' + str(len(R_dust[~mix])) \
+                           + '\n length R_CO_dust =' + str(len(R_CO[mix])) \
+                           + '\n dust disk =' + str(ri_d_AU) + " to " + str(r_out_AU) \
                            + "\n length wvl = " + str(len(wvl))
 
                 print(to_print)
@@ -541,13 +544,13 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # (The dust has its own parameters, independent of the gas, dependent on the inclination.)
                     # ---------------------------------------------------------
 
-                    T_gas_mix = cfg.t_ex(R_dust[mix], ti, ri, p)
-                    NCO_mix = cfg.nco(R_dust[mix], ni, ri, q)
+                    T_gas_mix = cfg.t_ex(R_CO[mix], ti, ri, p)
+                    NCO_mix = cfg.nco(R_CO[mix], ni, ri, q)
 
-                    dust_to_gas = seds.logistic_func_gas_dust_ratio(R_dust[mix], beta=beta, rhalf=r_turn)
-                    NH = cfg.nco(R_dust[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
+                    dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
+                    NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
                          * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
-                    T_dust = cfg.t_ex(R_dust[mix], ti_d, ri_d, p_d)
+                    T_dust = cfg.t_ex(R_CO[mix], ti_d, ri_d, p_d)
 
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
@@ -558,7 +561,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # ---------------------------------------------------------
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
-                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_dust[mix], wvl, dF=dF + "_dust")
+                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_CO[mix], wvl, dF=dF + "_dust")
 
                     # ---------------------------------------------------------
                     # Total flux from of part where gas and dust overlap.
@@ -566,9 +569,9 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
                     # Integrate over all angles to get velocity profile for convolution.
                     int_theta_dust = fixed_quad(cfg.integrand_gauss, 0, 2 * np.pi,
-                                                args=(vel_Kep, R_dust[mix], Mstar, i), n=100)[0]
+                                                args=(vel_Kep, R_CO[mix], Mstar, i), n=100)[0]
 
-                    flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_dust[mix], wvl,
+                    flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_CO[mix], wvl,
                                                       convolve=True, int_theta=int_theta_dust, dv=dv, dF=dF + "_mix")
 
                     # ---------------------------------------------------------
