@@ -108,7 +108,7 @@ def run_test(test_param, test_param_array, grid_params, all_params):
     pltr.plot_star(all_params.get("stars")[0])
     plt.figure(3)
     pltr.plot_obs_spectrum(all_params["stars"][0])
-    pltr.plot_275_checks(wvl)
+    pltr.plot_275_checks(wvl, rmax_in=True)
 
     return
 

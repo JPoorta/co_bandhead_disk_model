@@ -471,12 +471,19 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 print(to_print)
 
             # --------------------------------------------------------------
-            # Gas temperature, density, opacities and source function where there is only gas.
+            # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
+
+            T_gas = cfg.t_ex(R_CO, ti, ri, p)
+            NCO = cfg.nco(R_CO, ni, ri, q)
+            T_dust = cfg.t_ex(R_CO[mix], ti_d, ri_d, p_d)
+            dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
+            NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
+                 * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
+
+            # Opacities and source function where there is only gas.
             if gas_only_exist:
-                T_gas = cfg.t_ex(R_CO[CO_only], ti, ri, p)
-                NCO = cfg.nco(R_CO[CO_only], ni, ri, q)
-                S_CO, tau_CO = co_bandhead(t_gas=T_gas, NCO=NCO, wave=wvl,
+                S_CO, tau_CO = co_bandhead(t_gas=T_gas[CO_only], NCO=NCO[CO_only], wave=wvl,
                                            A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                            freq_trans=freq_trans, Elow=Elow,
                                            prof_dict=profile_dict, dust=False, plot=False)
@@ -494,10 +501,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 # Dust is *not* included, but the calculated S_CO does not cover the entire CO disk.
                 # --------------------------------------------------------------
 
-                # Gas temperature, density, opacities and source function in whole disk.
+                # Gas opacities and source function in whole disk.
                 # Continuum flux was calculated earlier.
-                T_gas = cfg.t_ex(R_CO, ti, ri, p)
-                NCO = cfg.nco(R_CO, ni, ri, q)
                 S_CO, tau_CO = co_bandhead(t_gas=T_gas, NCO=NCO, wave=wvl, A_einstein=A_einstein,
                                            jlower=jlower, jupper=jupper, freq_trans=freq_trans, Elow=Elow,
                                            prof_dict=profile_dict, dust=False)
@@ -544,15 +549,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # (The dust has its own parameters, independent of the gas, dependent on the inclination.)
                     # ---------------------------------------------------------
 
-                    T_gas_mix = cfg.t_ex(R_CO[mix], ti, ri, p)
-                    NCO_mix = cfg.nco(R_CO[mix], ni, ri, q)
-
-                    dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
-                    NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
-                         * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
-                    T_dust = cfg.t_ex(R_CO[mix], ti_d, ri_d, p_d)
-
-                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas_mix, NCO=NCO_mix, wave=wvl,
+                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas[mix], NCO=NCO[mix], wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                                                     freq_trans=freq_trans, Elow=Elow,
                                                                     prof_dict=profile_dict,
