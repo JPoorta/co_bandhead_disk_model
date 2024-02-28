@@ -256,7 +256,7 @@ def instrumental_profile(wvl, res, center_wvl=None):
 
 
 def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=100,
-                   num_dust=200, Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
+                   Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
                    maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None):
     """
     Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
@@ -286,7 +286,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
     :param dust: boolean. If True dust is included. If False the total continuum (for normalizing) still includes dust,
     but the gas emission is calculated without involving dust.
     :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)
-    :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)
     :param Rmin_in: (optional) initial radius for the CO gas disk (in AU). If not provided defaults to Ri.
     :param Rmax_in: (optional) outer radius for the CO gas disk (in AU). If not provided defaults
             to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence

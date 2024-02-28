@@ -95,7 +95,6 @@ def get_default_params(star=None):
                   "dust": True,
                   # From here on only optional parameters.
                   "num_CO": 100,
-                  "num_dust": 200,
                   "Rmin_in": None,
                   "Rmax_in": None,
                   "print_Rs": True,
@@ -103,7 +102,8 @@ def get_default_params(star=None):
                   "save": None,
                   "maxmin": (1.3, 1.02),
                   "lisa_it": None,
-                  "saved_list": None
+                  "saved_list": None,
+                  "dF":None
                   }
 
     return grid_params, all_params
