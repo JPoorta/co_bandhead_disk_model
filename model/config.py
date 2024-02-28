@@ -93,7 +93,6 @@ def get_default_params(star=None):
                   "vlower": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 1, 2, 3, 4, 5],
                   "nJ": 150,
                   "dust": True,
-                  "sed_best_fit": True,
                   # From here on only optional parameters.
                   "num_CO": 100,
                   "num_dust": 200,

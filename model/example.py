@@ -25,8 +25,8 @@ def run():
     grid_params, all_params = cfg.get_default_params(star)
 
     # set the parameter to be tested (optional).
-    test_param = "p"  # "Ti"
-    test_param_array = [-2, ]
+    test_param = "dust"  # "Ti"
+    test_param_array = [False, True]
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -103,8 +103,12 @@ def run_test(test_param, test_param_array, grid_params, all_params):
         pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
                                 label=test_param + " = " + str(value))
 
+
     plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
     pltr.plot_star(all_params.get("stars")[0])
+    plt.figure(3)
+    pltr.plot_obs_spectrum(all_params["stars"][0])
+    pltr.plot_275_checks(wvl, rmax_in=True)
 
     return
 
