@@ -572,6 +572,27 @@ def t_ex(r, ti, ri, p):
     :param p: Power law exponent.
     :return: Return excitation temperature in function of r.
     """
+    p1 = -2
+    p2 = p
+    T_kink = 2000
+    r_kink = (T_kink / ti) ** (1 / p1) * ri
+    r1_mask = np.zeros(len(r), dtype=bool)
+    r1_mask[np.where(r < r_kink)] = True
+    t_ex1 = ti * (r[r1_mask] / ri) ** p1
+
+    ti2, ri2 = (t_ex1[-1], r[r1_mask][-1])
+    t_ex2 = ti2 * (r[~r1_mask] / ri2) ** p2
+
+    t_final = np.concatenate((t_ex1, t_ex2))
+
+    return t_final
+
+
+def exp_t(r, t0, r0, t1=800, a=-11):
+    return t1 + (t0 - t1) * np.exp(a * (r/AU - r0/AU))
+
+
+def t_simple_power_law(r, ti, ri, p=-0.5):
     return ti * (r / ri) ** p
 
 

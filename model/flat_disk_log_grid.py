@@ -430,7 +430,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             if Rmax_in is not None:
                 Rmax = np.min((Rmax_in, r_out_AU)) * cfg.AU  # the outer radius is maximally as constrained by ALMA
             else:
-                Rmax = np.min(((cfg.min_T_gas / ti) ** (1 / p) * ri, cfg.r_max_def))
+                Rmax = np.min(((cfg.min_T_gas / ti) ** (1 / cfg.best_fit_params[st][2]) * ri, cfg.r_max_def))
 
             if Rmin_in is not None:
                 Rmin = Rmin_in * cfg.AU
@@ -474,12 +474,20 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
 
-            T_gas = cfg.t_ex(R_CO, ti, ri, p)
+            # T_gas = cfg.exp_t(R_CO, ti, ri, p)
+            T_gas_1 = cfg.exp_t(R_CO[CO_only], ti, ri, p)
+            T_gas_2 = cfg.t_simple_power_law(R_CO[mix], T_gas_1[-1], R_CO[CO_only][-1], p_d)
+            T_gas = np.concatenate((T_gas_1, T_gas_2))
             NCO = cfg.nco(R_CO, ni, ri, q)
-            T_dust = cfg.t_ex(R_CO[mix], ti_d, ri_d, p_d)
+            T_dust = cfg.t_simple_power_law(R_CO[mix], ti_d, ri_d, p_d)
             dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
             NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
+
+            plt.figure(5)
+            plt.loglog(R_CO / cfg.AU, T_gas, label=p)
+            plt.loglog(R_CO[mix] / cfg.AU, T_dust, label="dust")
+            plt.legend()
 
             # Opacities and source function where there is only gas.
             if gas_only_exist:
