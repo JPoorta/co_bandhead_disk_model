@@ -25,8 +25,8 @@ def run():
     grid_params, all_params = cfg.get_default_params(star)
 
     # set the parameter to be tested (optional).
-    test_param = "dust" #"p"  # "Ti"
-    test_param_array = [True, False] # [500, 600, 800, 1000] #
+    test_param = "p"  # "Ti"
+    test_param_array = [-0.5, -1, -2] # [True, False] #
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -36,8 +36,10 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
-    grid_params["p"] = 800
-    all_params["Rmax_in"] = None # 100
+    grid_params["p"] = -2
+    grid_params["t1"] = None # 800
+    grid_params["a"] = None # -11
+    all_params["Rmax_in"] = 100
     all_params["dF"] = None # "_almadust_p2_-0.75"
     all_params["num_CO"] = 100
 
@@ -48,20 +50,22 @@ def run():
     return
 
 
-def make_grid(ti, p, ni, q, ri):
+def make_grid(ti, t1, a, p, ni, q, ri):
     """
     Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check
     :meth:`flat_disk_log_grid.run_grid_log_r`.
 
     :param ti:
+    :param t1:
+    :param a:
     :param p:
     :param ni:
     :param q:
     :param ri:
     :return: numpy grid
     """
-    tiv, pv, niv, qv, riv = np.meshgrid(ti, p, ni, q, ri, sparse=False)
-    return [tiv, pv, niv, qv, riv]
+    tiv, t1v, av, pv, niv, qv, riv = np.meshgrid(ti, t1, a, p, ni, q, ri, sparse=False)
+    return [tiv, t1v, av, pv, niv, qv, riv]
 
 
 def run_test(test_param, test_param_array, grid_params, all_params):

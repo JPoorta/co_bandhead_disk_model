@@ -107,19 +107,19 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     return
 
 
-def plot_t_structure_gas():
+def plot_t_structure_gas(r_co, **grid_params):
 
-    plt.figure(5)
-    r_tot = np.concatenate((R_CO_only, R_dust[mix]))
-    t_tot = np.concatenate((T_gas, T_gas_mix))
-    plt.loglog(r_tot / cfg.AU, t_tot, label=p)
-    plt.loglog(R_dust[mix] / cfg.AU, T_dust, label="dust")
+
+    plt.loglog(r_co / cfg.AU, T_gas, label=p)
+
     plt.legend()
 
 
-def plot_t_structure_dust(r_dust, t_dust):
+def plot_t_structure_dust(r_co, mix, t_dust):
 
-
+    plt.loglog(R_CO[mix] / cfg.AU, T_dust, label="dust")
+    p_plot = cfg.best_fit_params[st][2]
+    plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p=" + str(p_plot))
 
     plt.figure(5)
     plt.loglog(R_dust[mix] / cfg.AU, T_dust, label="dust")

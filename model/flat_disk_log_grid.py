@@ -67,6 +67,34 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     return wvl, profile_dict
 
 
+def create_t_gas_array(r_co, co_only, ti, ri, t1=None, a=None, p=None, p_d=None):
+    """
+    CO gas temperature structure, based on given input. If t1 and a are both given (i.e. not None), the temperature
+    exponentially decays until the dust sublimation radius(dsr). After the dsr it follows the same power law as the
+    dust. If either t1 or a is None, the original power law is returned using p.
+    Both t1 and a OR p have to be provided.
+
+    :param r_co: (array) the full co disk radial array
+    :param co_only: (array mask on r_co) marks the radii within the dust sublimation radius.
+    :param ti: (scalar or array)
+    :param ri: (scalar or array)
+    :param t1: (array) the baseline to which the temperature asymptotically decays.
+    :param a: (array) the decay rate.
+    :param p: (scalar or array) power law exponent. Only used if t1 or a is not given.
+    :param p_d:(scalar or array) power law exponent of the dust. Is needed is t1 and a are provided.
+    :return:
+    """
+
+    if not (None in t1) and not (None in a):
+        T_gas_1 = cfg.exp_t(r_co[co_only], ti, ri, t1, a)
+        T_gas_2 = cfg.t_simple_power_law(r_co[~co_only], T_gas_1[-1], r_co[co_only][-1], p_d)
+        T_gas = np.concatenate((T_gas_1, T_gas_2))
+    else:
+        T_gas = cfg.t_simple_power_law(r_co, ti, ri, p)
+
+    return T_gas
+
+
 def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
                 plot=False):
     """
@@ -266,16 +294,20 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
         .. code-block:: python
 
-            tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)
-            grid = [tiv, pv, niv, qv, riv]
+            tiv, t1v, av, pv, niv, qv, riv = np.meshgrid(ti, t1, a, p, ni, q, ri, sparse=False)
+            grid = [tiv, t1v, av, pv, niv, qv, riv]
 
-        With Ti, p, Ni, q, Ri arrays or scalars:
+        With ti, t1, a, p, ni, q, ri arrays or scalars:
 
-         - Ti: initial CO gas temperature  at Ri (in K).
-         - p: power law exponent for the gas temperature (p<0).
-         - Ni: initial gas (H2) surface density at Ri (in cm^-2).
+         - ti: initial CO gas temperature at ri (in K).
+         - t1: baseline temperature in K for exponential decoy law. This is default, unless t1 or a is None, then
+         code defaults to power law.
+         - a: decay rate in case an exponential decoy law is used (a<0). (if None, code defaults to power law)
+         - p: power law exponent for the gas temperature (p<0). Default is exponential decay law even if p is provided.
+         Either p or t1 and a should be provided.
+         - ni: initial gas (H2) surface density at Ri (in cm^-2).
          - q: power law exponent for the gas surface density (q<0).
-         - Ri: initial radius for the powerlaws for the CO gas disk (in AU).
+         - ri: initial radius for the powerlaws for the CO gas disk (in AU).
     :param inc_deg: array of inclination(s) in degrees. This can only contain values from [10,20,30,40,50,60,70,80]
     :param stars: array of string(s) with the object names.
     :param dv0: (scalar or array) doppler width of the lines in km/s. If array, for each element the bandheads
@@ -392,7 +424,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
         # ITERATIONS OVER THE GRID.
         # --------------------------------------------------------------
 
-        it = np.nditer(grid, ["ranged"])
+        it = np.nditer(grid, ["ranged", "refs_ok"])
 
         if lisa_it is not None:
             chunk_size, rest = np.divmod(np.nditer(grid).itersize, 16)
@@ -406,14 +438,10 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # ---------------------------------------------------------
             # Extract the disk parameters.
             # ---------------------------------------------------------
-            ti, p, ni, q, ri_R = (x[0], x[1], x[2], x[3], x[4])
+            ti, t1, a, p, ni, q, ri_R = (x[0], x[1], x[2], x[3], x[4], x[5], x[6])
 
             if ti < 0:
                 ti = T_eff
-            # ---------------------------------------------------------
-            # Creation of the radial arrays.
-            # ---------------------------------------------------------
-            ri = ri_R * cfg.AU
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
             if dF is not None:
@@ -425,6 +453,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 if not np.any([filename in listed for listed in to_be_calculated]):
                     print(filename + " skip")
                     continue
+
+            # ---------------------------------------------------------
+            # Creation of the radial arrays.
+            # ---------------------------------------------------------
+            ri = ri_R * cfg.AU
 
             if Rmax_in is not None:
                 Rmax = np.min((Rmax_in, r_out_AU)) * cfg.AU  # the outer radius is maximally as constrained by ALMA
@@ -472,13 +505,10 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # --------------------------------------------------------------
             # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
-
-            # T_gas = cfg.exp_t(R_CO, ti, ri, p)
-            T_gas_1 = cfg.exp_t(R_CO[CO_only], ti, ri, p)
-            T_gas_2 = cfg.t_simple_power_law(R_CO[mix], T_gas_1[-1], R_CO[CO_only][-1], p_d)
-            T_gas = np.concatenate((T_gas_1, T_gas_2))
-            NCO = cfg.nco(R_CO, ni, ri, q)
+            T_gas = create_t_gas_array(R_CO, CO_only, mix, ti, ri, t1, a, p, p_d)
             T_dust = cfg.t_simple_power_law(R_CO[mix], ti_d, ri_d, p_d)
+
+            NCO = cfg.nco(R_CO, ni, ri, q)
             dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
             NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
@@ -486,6 +516,8 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             plt.figure(5)
             plt.loglog(R_CO / cfg.AU, T_gas, label=p)
             plt.loglog(R_CO[mix] / cfg.AU, T_dust, label="dust")
+            p_plot = cfg.best_fit_params[st][2]
+            plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p="+str(p_plot))
             plt.legend()
 
             # Opacities and source function where there is only gas.

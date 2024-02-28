@@ -84,6 +84,8 @@ def get_default_params(star=None):
                    "p": p,  # [-0.5, -0.75, -2]
                    "ni": n_h_i,
                    "q": -1.5,
+                   "t1": 800,
+                   "a": -11
                    }
 
     all_params = {"inc_deg": [inc],  # 10,20,30,40,50,60,70,80
@@ -559,40 +561,33 @@ def v_kep_cm_s(m_star, r):
     return np.sqrt(G * m_star * M_sun / r)
 
 
-# Temperature power law
-
-def t_ex(r, ti, ri, p):
+# Temperature structures
+def exp_t(r, t0, r0, t1, a):
     """
-    Excitation temperature for the gas, given as a power law.
+    Exponential decay law for the temperature in function of r.
+    t1 and a can both be free parameters.
 
-    :param r: Radial coordinate in cm.
-    :type r: array
-    :param ti: Initial temperature at ri in K.
-    :param ri: Initial radius in cm.
-    :param p: Power law exponent.
-    :return: Return excitation temperature in function of r.
+    :param r: radial array in cm.
+    :param t0: initial temperature in K at r0.
+    :param r0: the reference radius for t0.
+    :param t1: the "zero-point" (or minimal) temperature to which the T decays.
+    :param a: the decay rate, typically high to get a good fit for our objects.
+    :return: unit K
     """
-    p1 = -2
-    p2 = p
-    T_kink = 2000
-    r_kink = (T_kink / ti) ** (1 / p1) * ri
-    r1_mask = np.zeros(len(r), dtype=bool)
-    r1_mask[np.where(r < r_kink)] = True
-    t_ex1 = ti * (r[r1_mask] / ri) ** p1
-
-    ti2, ri2 = (t_ex1[-1], r[r1_mask][-1])
-    t_ex2 = ti2 * (r[~r1_mask] / ri2) ** p2
-
-    t_final = np.concatenate((t_ex1, t_ex2))
-
-    return t_final
-
-
-def exp_t(r, t0, r0, t1=800, a=-11):
     return t1 + (t0 - t1) * np.exp(a * (r/AU - r0/AU))
 
 
 def t_simple_power_law(r, ti, ri, p=-0.5):
+    """
+    # Temperature power law.
+
+    :param r: Radial coordinate in arbitrary units, but same as ri.
+    :type r: array
+    :param ti: Initial temperature at ri in K.
+    :param ri: Initial radius in arbitrary units, but same as r.
+    :param p: Power law exponent.
+    :return: Return excitation temperature in function of r.
+    """
     return ti * (r / ri) ** p
 
 
