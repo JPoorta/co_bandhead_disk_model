@@ -67,25 +67,113 @@ def create_freq_array_profile_dict(freq_trans, dv, dv0):
     return wvl, profile_dict
 
 
+def def_rmax(st, rmax_in, r_out_au, ti, ri):
+    """
+    Outer radius of both gas and dust disk (if applicable).
+
+    :param st: (str) star name
+    :param rmax_in: (float, int, or None-type) outer radius as input parameter to the model in AU.
+    :param r_out_au: (float, int) outer radius as derived from ALMA observations in AU.
+    :param ti: (float, int) temperature at ri in K, grid parameter to model.
+    :param ri: (float, int) reference radius for temperature and density power laws in cm.
+    Grid parameter to model is in AU.
+    :return: outer disk radius in cm.
+    """
+    if rmax_in is not None:
+        rmax = np.min((rmax_in, r_out_au)) * cfg.AU  # the outer radius is maximally as constrained by ALMA
+    else:
+        rmax = np.min(((cfg.min_T_gas / ti) ** (1 / cfg.best_fit_params[st][2]) * ri, cfg.r_max_def))
+
+    return rmax
+
+
+def def_rmin(rmin_in, ri):
+    """
+    Inner radius of gas disk. Can be different from reference radius of the power laws iff 'rmin_in' is given.
+
+    :param rmin_in: (float, int, or None-type) inner model disk radius as input parameter to the model in AU.
+    :param ri: (float, int) reference radius for temperature and density power laws in cm.
+    Grid parameter to model is in AU.
+    :return: inner disk radius in cm.
+    """
+    if rmin_in is not None:
+        rmin = rmin_in * cfg.AU
+    else:
+        rmin = ri
+
+    return rmin
+
+
+def def_r_co(rmin, rmax, num_co):
+    """
+    Full radial array for gas disk model.
+
+    :param rmin: (float or int) inner radius of gas disk in same units as 'rmax'.
+    :param rmax: (float or int) outer radius of gas disk in same units as 'rmin'.
+    :param num_co: (int) number of radial points, input parameter to model.
+    :return: radial array for gas disk model in same units as rmin and rmax.
+    """
+    return np.geomspace(rmin, rmax, num=num_co)
+
+
+def co_only_mask(r_co, ri_d):
+    """
+    Mask on the r_co indicating where there is no dust.
+
+    :param r_co: radial array for entire co disk in same units as ri_d
+    :param ri_d: inner radius of dust disk in same units as r_co.
+    :return: mask on r_co
+    """
+    return r_co < ri_d
+
+
+def create_radial_array(st, ri_r, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_co):
+    """
+    Define and return the radial array and all associated variables. All output is in cm (except the 'co_only' mask).
+
+    :param st: (str) star name.
+    :param ri_r: (float, int) reference radius for temperature and density power laws in AU, grid parameter to model.
+    :param rmax_in: (float, int, or None-type) outer radius as input parameter to the model in AU.
+    :param rmin_in: (float, int, or None-type) inner model disk radius as input parameter to the model in AU.
+    :param ri_d_au: (float, int) inner radius of dust disk in AU, from SED fit results.
+    :param r_out_au: (float, int) outer radius as derived from ALMA observations in AU, stored with SED fit results.
+    :param ti: (float, int) temperature at ri in K, grid parameter to model.
+    :param num_co: (int) number of radial points, input parameter to model.
+    :return:
+    """
+
+    # All length units below are cm.
+    ri = ri_r * cfg.AU
+    ri_d = ri_d_au * cfg.AU
+
+    rmax = def_rmax(st, rmax_in, r_out_au, ti, ri)
+    rmin = def_rmin(rmin_in, ri)
+    r_co = def_r_co(rmin, rmax, num_co)
+    co_only = co_only_mask(r_co, ri_d)
+
+    return rmax, rmin, ri, ri_d, r_co, co_only
+
+
 def create_t_gas_array(r_co, co_only, ti, ri, t1=None, a=None, p=None, p_d=None):
     """
-    CO gas temperature structure, based on given input. If t1 and a are both given (i.e. not None), the temperature
+    CO gas temperature structure, based on given input. If 't1' and 'a' are both given (i.e. not None), the temperature
     exponentially decays until the dust sublimation radius(dsr). After the dsr it follows the same power law as the
-    dust. If either t1 or a is None, the original power law is returned using p.
+    dust. If either 't1' or 'a' is None, the original power law is returned using p.
     Both t1 and a OR p have to be provided.
+    All array types below have to have 1 element except r_co.
 
     :param r_co: (array) the full co disk radial array
     :param co_only: (array mask on r_co) marks the radii within the dust sublimation radius.
     :param ti: (scalar or array)
     :param ri: (scalar or array)
-    :param t1: (array) the baseline to which the temperature asymptotically decays.
-    :param a: (array) the decay rate.
-    :param p: (scalar or array) power law exponent. Only used if t1 or a is not given.
-    :param p_d:(scalar or array) power law exponent of the dust. Is needed is t1 and a are provided.
+    :param t1: (scalar or NoneType) the baseline to which the temperature asymptotically decays.
+    :param a: (scalar or NoneType) the decay rate.
+    :param p: (scalar or array) power law exponent. Only used if 't1' or 'a' is not given.
+    :param p_d:(scalar or array) power law exponent of the dust. Is needed is 't1' and 'a' are provided.
     :return:
     """
 
-    if not (None in t1) and not (None in a):
+    if t1 is not None and a is not None:
         T_gas_1 = cfg.exp_t(r_co[co_only], ti, ri, t1, a)
         T_gas_2 = cfg.t_simple_power_law(r_co[~co_only], T_gas_1[-1], r_co[co_only][-1], p_d)
         T_gas = np.concatenate((T_gas_1, T_gas_2))
@@ -139,7 +227,7 @@ def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     # Reading of the partition sums and calculation fractional level populations in LTE
     # -----------------------------------------------------------------------------
     Q = np.interp(t_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
-    g_i = cfg.g_i_dict.get(cfg.species)  # state indpedendent statistical weight factor, see config
+    g_i = cfg.g_i_dict.get(cfg.species)  # state independent statistical weight factor, see config
     x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / t_gas[:, None])
 
     # c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.
@@ -300,11 +388,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
         With ti, t1, a, p, ni, q, ri arrays or scalars:
 
          - ti: initial CO gas temperature at ri (in K).
-         - t1: baseline temperature in K for exponential decoy law. This is default, unless t1 or a is None, then
+         - t1: baseline temperature in K for exponential decoy law. This is default, unless 't1' or 'a' is None, then
          code defaults to power law.
          - a: decay rate in case an exponential decoy law is used (a<0). (if None, code defaults to power law)
          - p: power law exponent for the gas temperature (p<0). Default is exponential decay law even if p is provided.
-         Either p or t1 and a should be provided.
+         Either 'p' or 't1' and 'a' should be provided.
          - ni: initial gas (H2) surface density at Ri (in cm^-2).
          - q: power law exponent for the gas surface density (q<0).
          - ri: initial radius for the powerlaws for the CO gas disk (in AU).
@@ -415,7 +503,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
         # --------------------------------------------------------------
 
         modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_AU, r_turn, beta, r_out_AU = cfg.best_dust_fit_ALMA.get(st)
-        ri_d = ri_d_AU * cfg.AU
         sed_params = {"obj": st, "ri": ri_d_AU, "ni": ni_d, "ti": ti_d, "p": p_d, "inc": i_d, "r_out": r_out_AU,
                       "q": q_d, "opacities": cfg.default_opacities, "beta": beta, "r_half": r_turn, "wvl": wvl}
         flux_cont_tot = seds.full_sed_alma(**sed_params)[0]
@@ -457,25 +544,13 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # ---------------------------------------------------------
             # Creation of the radial arrays.
             # ---------------------------------------------------------
-            ri = ri_R * cfg.AU
-
-            if Rmax_in is not None:
-                Rmax = np.min((Rmax_in, r_out_AU)) * cfg.AU  # the outer radius is maximally as constrained by ALMA
-            else:
-                Rmax = np.min(((cfg.min_T_gas / ti) ** (1 / cfg.best_fit_params[st][2]) * ri, cfg.r_max_def))
-
-            if Rmin_in is not None:
-                Rmin = Rmin_in * cfg.AU
-            else:
-                Rmin = ri
+            Rmax, Rmin, ri, ri_d, R_CO, CO_only = \
+                create_radial_array(st, ri_R, Rmax_in, Rmin_in, ri_d_AU, r_out_AU, ti, num_CO)
 
             # --------------------------------------------------------------
             # Dust and gas can overlap (dust_in_gas=True), and if the gas disk starts (Rmin) earlier than the dust
             # (ri_d) there is a part of the disk with only gas (gas_only_exist).
             # --------------------------------------------------------------
-            R_CO = np.geomspace(Rmin, Rmax, num=num_CO)
-            CO_only = (R_CO < ri_d)
-
             dust_in_gas = ri_d <= Rmax
             gas_only_exist = Rmin < ri_d
 
@@ -504,7 +579,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # --------------------------------------------------------------
             # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
-            T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1, a, p, p_d)
+            T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1[()], a[()], p, p_d)
             T_dust = cfg.t_simple_power_law(R_CO[~CO_only], ti_d, ri_d, p_d)
 
             NCO = cfg.nco(R_CO, ni, ri, q)
@@ -513,7 +588,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
 
             plt.figure(5)
-            plt.loglog(R_CO / cfg.AU, T_gas, label="T_gas"+" p="+str(p)+" t1="+str(t1)+" a="+str(a))
+            plt.loglog(R_CO / cfg.AU, T_gas, label="T_gas" + " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
             plt.loglog(R_CO[~CO_only] / cfg.AU, T_dust, label="dust")
             # p_plot = cfg.best_fit_params[st][2]
             # plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p="+str(p_plot))
