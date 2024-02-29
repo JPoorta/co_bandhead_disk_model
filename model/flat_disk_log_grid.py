@@ -475,7 +475,6 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # --------------------------------------------------------------
             R_CO = np.geomspace(Rmin, Rmax, num=num_CO)
             CO_only = (R_CO < ri_d)
-            mix = (R_CO >= ri_d)
 
             dust_in_gas = ri_d <= Rmax
             gas_only_exist = Rmin < ri_d
@@ -496,7 +495,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 to_print = '\n R_max = ' + str((R_CO[-1]) / cfg.AU) + ' AU' \
                            + '\n R = ' + str(R_CO / cfg.AU) + ' AU, ' \
                            + '\n length R_CO =' + str(len(R_CO[CO_only])) \
-                           + '\n length R_CO_dust =' + str(len(R_CO[mix])) \
+                           + '\n length R_CO_dust =' + str(len(R_CO[~CO_only])) \
                            + '\n dust disk =' + str(ri_d_AU) + " to " + str(r_out_AU) \
                            + "\n length wvl = " + str(len(wvl))
 
@@ -505,19 +504,19 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # --------------------------------------------------------------
             # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
-            T_gas = create_t_gas_array(R_CO, CO_only, mix, ti, ri, t1, a, p, p_d)
-            T_dust = cfg.t_simple_power_law(R_CO[mix], ti_d, ri_d, p_d)
+            T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1, a, p, p_d)
+            T_dust = cfg.t_simple_power_law(R_CO[~CO_only], ti_d, ri_d, p_d)
 
             NCO = cfg.nco(R_CO, ni, ri, q)
-            dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[mix], beta=beta, rhalf=r_turn)
-            NH = cfg.nco(R_CO[mix], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
+            dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[~CO_only], beta=beta, rhalf=r_turn)
+            NH = cfg.nco(R_CO[~CO_only], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
 
             plt.figure(5)
-            plt.loglog(R_CO / cfg.AU, T_gas, label=p)
-            plt.loglog(R_CO[mix] / cfg.AU, T_dust, label="dust")
-            p_plot = cfg.best_fit_params[st][2]
-            plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p="+str(p_plot))
+            plt.loglog(R_CO / cfg.AU, T_gas, label="T_gas"+" p="+str(p)+" t1="+str(t1)+" a="+str(a))
+            plt.loglog(R_CO[~CO_only] / cfg.AU, T_dust, label="dust")
+            # p_plot = cfg.best_fit_params[st][2]
+            # plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p="+str(p_plot))
             plt.legend()
 
             # Opacities and source function where there is only gas.
@@ -588,7 +587,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # (The dust has its own parameters, independent of the gas, dependent on the inclination.)
                     # ---------------------------------------------------------
 
-                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas[mix], NCO=NCO[mix], wave=wvl,
+                    S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas[~CO_only], NCO=NCO[~CO_only], wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                                                     freq_trans=freq_trans, Elow=Elow,
                                                                     prof_dict=profile_dict,
@@ -597,7 +596,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # ---------------------------------------------------------
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
-                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_CO[mix], wvl, dF=dF + "_dust")
+                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_CO[~CO_only], wvl, dF=dF + "_dust")
 
                     # ---------------------------------------------------------
                     # Total flux from of part where gas and dust overlap.
@@ -605,9 +604,9 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
                     # Integrate over all angles to get velocity profile for convolution.
                     int_theta_dust = fixed_quad(cfg.integrand_gauss, 0, 2 * np.pi,
-                                                args=(vel_Kep, R_CO[mix], Mstar, i), n=100)[0]
+                                                args=(vel_Kep, R_CO[~CO_only], Mstar, i), n=100)[0]
 
-                    flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_CO[mix], wvl,
+                    flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_CO[~CO_only], wvl,
                                                       convolve=True, int_theta=int_theta_dust, dv=dv, dF=dF + "_mix")
 
                     # ---------------------------------------------------------
