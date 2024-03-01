@@ -20,13 +20,12 @@ import model.config as cfg
 
 
 def run():
-
     star = "B275"
     grid_params, all_params = cfg.get_default_params(star)
 
     # set the parameter to be tested (optional).
-    test_param = "p"  # "Ti"
-    test_param_array = [-0.5, -1, -2] # [True, False] #
+    test_param = "ri"  # "Ti"
+    test_param_array = [0.261, 3, 6]  # [True, False] #
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -37,10 +36,10 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    grid_params["t1"] = None # 800
-    grid_params["a"] = None # -11
+    grid_params["t1"] = None  # 800 #
+    grid_params["a"] = None  # -11 #
     all_params["Rmax_in"] = 100
-    all_params["dF"] = None # "_almadust_p2_-0.75"
+    all_params["dF"] = None  # "_almadust_p2_-0.75"
     all_params["num_CO"] = 100
 
     run_test(test_param, test_param_array, grid_params, all_params)
@@ -104,12 +103,15 @@ def run_test(test_param, test_param_array, grid_params, all_params):
 
         continuum_flux = flux_tot_ext / flux_norm_ext
 
+        pltr.plot_t_structure_gas(star, grid_params, all_params)
         pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
                                 label=test_param + " = " + str(value))
 
 
     plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
     pltr.plot_star(all_params.get("stars")[0])
+    pltr.plot_t_structure_dust(star, grid_params, all_params)
+    pltr.plot_t_structure_original(star)
     plt.figure(3)
     pltr.plot_obs_spectrum(all_params["stars"][0])
     pltr.plot_275_checks(wvl, rmax_in=False)

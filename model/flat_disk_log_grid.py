@@ -127,12 +127,12 @@ def co_only_mask(r_co, ri_d):
     return r_co < ri_d
 
 
-def create_radial_array(st, ri_r, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_co):
+def create_radial_array(st, ri_au, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_co):
     """
     Define and return the radial array and all associated variables. All output is in cm (except the 'co_only' mask).
 
     :param st: (str) star name.
-    :param ri_r: (float, int) reference radius for temperature and density power laws in AU, grid parameter to model.
+    :param ri_au: (float, int) reference radius for temperature and density power laws in AU, grid parameter to model.
     :param rmax_in: (float, int, or None-type) outer radius as input parameter to the model in AU.
     :param rmin_in: (float, int, or None-type) inner model disk radius as input parameter to the model in AU.
     :param ri_d_au: (float, int) inner radius of dust disk in AU, from SED fit results.
@@ -143,7 +143,7 @@ def create_radial_array(st, ri_r, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_c
     """
 
     # All length units below are cm.
-    ri = ri_r * cfg.AU
+    ri = ri_au * cfg.AU
     ri_d = ri_d_au * cfg.AU
 
     rmax = def_rmax(st, rmax_in, r_out_au, ti, ri)
@@ -162,10 +162,10 @@ def create_t_gas_array(r_co, co_only, ti, ri, t1=None, a=None, p=None, p_d=None)
     Both t1 and a OR p have to be provided.
     All array types below have to have 1 element except r_co.
 
-    :param r_co: (array) the full co disk radial array
+    :param r_co: (array) the full co disk radial array in cm.
     :param co_only: (array mask on r_co) marks the radii within the dust sublimation radius.
-    :param ti: (scalar or array)
-    :param ri: (scalar or array)
+    :param ti: (scalar or array) temperature in K at ri.
+    :param ri: (scalar or array) reference disk radius for ti in cm.
     :param t1: (scalar or NoneType) the baseline to which the temperature asymptotically decays.
     :param a: (scalar or NoneType) the decay rate.
     :param p: (scalar or array) power law exponent. Only used if 't1' or 'a' is not given.
@@ -181,6 +181,21 @@ def create_t_gas_array(r_co, co_only, ti, ri, t1=None, a=None, p=None, p_d=None)
         T_gas = cfg.t_simple_power_law(r_co, ti, ri, p)
 
     return T_gas
+
+
+def create_t_dust_array(r_co, co_only, ti_d, ri_d, p_d):
+    """
+    Temperature of the dust in the part of the disk where it exists.
+
+    :param r_co: radial array of the gas disk in same units as ri_d.
+    :param co_only: mask to r_co where there is only gas.
+    :param ti_d: dust temperature in K at inner dust disk radius ri_d.
+    :param ri_d: inner radius of dust disk (and ref radius for ti_d) in same units as r_co.
+    :param p_d: power law exponent of the dust.
+    :return:
+    """
+
+    return cfg.t_simple_power_law(r_co[~co_only], ti_d, ri_d, p_d)
 
 
 def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
@@ -580,19 +595,12 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # Gas and dust temperatures and densities.
             # --------------------------------------------------------------
             T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1[()], a[()], p, p_d)
-            T_dust = cfg.t_simple_power_law(R_CO[~CO_only], ti_d, ri_d, p_d)
+            T_dust = create_t_dust_array(R_CO, CO_only, ti_d, ri_d, p_d)
 
             NCO = cfg.nco(R_CO, ni, ri, q)
             dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[~CO_only], beta=beta, rhalf=r_turn)
             NH = cfg.nco(R_CO[~CO_only], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
-
-            plt.figure(5)
-            plt.loglog(R_CO / cfg.AU, T_gas, label="T_gas" + " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
-            plt.loglog(R_CO[~CO_only] / cfg.AU, T_dust, label="dust")
-            # p_plot = cfg.best_fit_params[st][2]
-            # plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p="+str(p_plot))
-            plt.legend()
 
             # Opacities and source function where there is only gas.
             if gas_only_exist:

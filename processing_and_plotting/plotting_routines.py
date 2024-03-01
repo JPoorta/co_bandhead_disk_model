@@ -3,6 +3,7 @@ import numpy as np
 
 import model.config as cfg
 import model.sed_calculations as seds
+from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, create_radial_array
 
 
 def plot_star(star):
@@ -107,20 +108,81 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     return
 
 
-def plot_t_structure_gas(r_co, **grid_params):
+def obtain_model_arrays_from_params(star, grid_params, all_params):
+    """
+    With the all input parameters of a model, obtain the radial array with its gas-only mask and the temperature arrays
+    of dust and gas.
+
+    :param star:
+    :param grid_params:
+    :param all_params:
+    :return:
+    """
+
+    # Get the necessary parameters from the input.
+    modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = cfg.best_dust_fit_ALMA[star]
+    ri_au, ti, p, t1, a = (grid_params["ri"], grid_params["ti"], grid_params["p"], grid_params["t1"], grid_params["a"])
+    rmax_in, rmin_in, num_co = (all_params["Rmax_in"], all_params["Rmin_in"], all_params["num_CO"])
+
+    # Refer to functions in the model to get the output array.
+    rmax, rmin, ri, ri_d, r_co, co_only = \
+        create_radial_array(star, ri_au, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_co)
+    t_gas = create_t_gas_array(r_co, co_only, ti, ri, t1, a, p, p_d)
+    t_dust = create_t_dust_array(r_co, co_only, ti_d, ri_d, p_d)
+
+    return r_co, co_only, t_gas, t_dust
 
 
-    plt.loglog(r_co / cfg.AU, T_gas, label=p)
+def plot_t_structure_gas(star, grid_params, all_params):
+    """
+    Using the 'obtain_model_arrays_from_params' function plot the CO temperature array.
 
-    plt.legend()
-
-
-def plot_t_structure_dust(r_co, mix, t_dust):
-
-    plt.loglog(R_CO[mix] / cfg.AU, T_dust, label="dust")
-    p_plot = cfg.best_fit_params[st][2]
-    plt.loglog(R_CO / cfg.AU, cfg.t_simple_power_law(R_CO, ti, ri, p_plot), label="p=" + str(p_plot))
+    :param star:
+    :param grid_params:
+    :param all_params:
+    :return:
+    """
+    r_co, co_only, t_gas, t_dust = obtain_model_arrays_from_params(star, grid_params, all_params)
+    ri_au, ti, p, t1, a = (grid_params["ri"], grid_params["ti"], grid_params["p"], grid_params["t1"], grid_params["a"])
 
     plt.figure(5)
-    plt.loglog(R_dust[mix] / cfg.AU, T_dust, label="dust")
+    plt.loglog(r_co / cfg.AU, t_gas,
+               label="T_gas" + " ri=" + str(ri_au) + " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
     plt.legend()
+    return
+
+
+def plot_t_structure_dust(star, grid_params, all_params):
+    """
+    Using the 'obtain_model_arrays_from_params' function plot the dust temperature array.
+
+    :param star:
+    :param grid_params:
+    :param all_params:
+    :return:
+    """
+    r_co, co_only, t_gas, t_dust = obtain_model_arrays_from_params(star, grid_params, all_params)
+    plt.figure(5)
+    plt.loglog(r_co[~co_only] / cfg.AU, t_dust, label="dust")
+    plt.legend()
+    return
+
+
+def plot_t_structure_original(star):
+    """
+    Using the parameters of the original best fit model of an object, recreate the temperature array.
+
+    :param star:
+    :return:
+    """
+
+    ri_d_au = cfg.best_dust_fit_ALMA[star][6]
+    ti, t_i_err, p, n_h_i, n_h_i_err, ri_au, inc, v_g = cfg.best_fit_params[star]
+    rmax, rmin, ri, ri_d, r_co, co_only = \
+        create_radial_array(star, ri_au, rmax_in=None, rmin_in=None, ri_d_au=ri_d_au, r_out_au=None, ti=ti, num_co=100)
+    t_gas = create_t_gas_array(r_co, co_only, ti, ri, t1=None, a=None, p=p, p_d=None)
+
+    plt.figure(5)
+    plt.loglog(r_co / cfg.AU, t_gas, linestyle='--', c='k', label="original power law")
+    plt.legend()
+    return
