@@ -82,31 +82,46 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     :param label:
     :return:
     """
+    quick_plot_cont_subtr_ext_flux(star, wvl, flux_tot_ext, continuum_flux, label)
+    quick_plot_norm_flux(star, wvl, flux_norm_ext, label)
+    quick_plot_total_ext_flux(star, wvl, flux_tot_ext, label)
+    quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label)
 
+    return
+
+
+def quick_plot_cont_subtr_ext_flux(star, wvl, flux_tot_ext, continuum_flux, label):
     plt.figure(0)
     plt.title(star + " Continuum subtracted, extincted flux")
     plt.plot(wvl, flux_tot_ext - continuum_flux, label=label)
     plt.legend()
+    return
 
+
+def quick_plot_norm_flux(star, wvl, flux_norm_ext, label):
     plt.figure(1)
     plt.title(star + " Normalized flux")
     plt.plot(wvl, flux_norm_ext, label=label)
     plt.vlines([1.558, 1.5779, 1.5982], 0, 2, linestyles='dashed')
     # plt.ylim(0.99,1.12)
     plt.legend()
+    return
 
+
+def quick_plot_total_ext_flux(star, wvl, flux_tot_ext, label):
+    plt.figure(2)
+    plt.title(star)
+    plt.loglog(wvl, flux_tot_ext, label='total extincted flux; ' + label)
+    return
+
+
+def quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label):
     plt.figure(3)
     plt.title(star + " Normalized, convolved flux")
     plt.plot(wvl, conv_flux_norm, label=label)
     # plt.ylim(0.99, 1.12)
     plt.legend()
-
-    plt.figure(2)
-    plt.title(star)
-    plt.loglog(wvl, flux_tot_ext, label='total extincted flux; ' + label)
-
     return
-
 
 def obtain_model_arrays_from_params(star, grid_params, all_params):
     """
@@ -146,8 +161,8 @@ def plot_t_structure_gas(star, grid_params, all_params):
     ri_au, ti, p, t1, a = (grid_params["ri"], grid_params["ti"], grid_params["p"], grid_params["t1"], grid_params["a"])
 
     plt.figure(5)
-    plt.loglog(r_co / cfg.AU, t_gas,
-               label="T_gas" + " ri=" + str(ri_au) + " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
+    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(ti) + " ri=" + str(ri_au) +
+                                           " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
     plt.legend()
     return
 
