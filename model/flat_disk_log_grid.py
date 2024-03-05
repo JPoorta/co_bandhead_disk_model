@@ -545,7 +545,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             if ti < 0:
                 ti = T_eff
 
-            filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R)
+            filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, t1=t1[()], a=a[()])
             if dF is not None:
                 dF = str(cfg.results_folder / st / ("dF" + dF) / filename)
             else:
@@ -736,7 +736,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
                 for k, element in enumerate(dv0_cm):
 
-                    filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, dv=element / 1.e5)
+                    filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, t1=t1[()], a=a[()], dv=element / 1.e5)
 
                     if True in all_in_norm[k, :]:
                         np.save(folder / filename, to_save[k, ...])

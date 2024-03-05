@@ -249,7 +249,7 @@ def load_inc_dust_dict(st):
         return pickle.load(f)
 
 
-def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None):
+def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None, t1=None, a=None):
     """
     Standardized filename for saving grid items.
 
@@ -264,7 +264,12 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None):
         (like dust, yes or no, or outer radius) but not yet used. Possibly redundant.
     :return: (str) name of the model file
     """
-    base_str = str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
+    if t1 is None or a is None:
+        base_str = str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
+                   + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
+                   + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
+    else:
+        base_str = str(np.int(ti)) + '_' + str(int(t1)) + '_' + str(int(a)) + '_'+ '{0:g}'.format(p) + '_' \
                + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
                + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
     full_name = base_str

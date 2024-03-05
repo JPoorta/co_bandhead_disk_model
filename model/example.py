@@ -25,7 +25,8 @@ def run():
 
     # set the parameter to be tested (optional).
     test_param = "t1"  # "dust" # "ri"
-    test_param_array = [1000, 1500]  # [True, False] # [0.261, 3, 6]
+    test_param_array = [700, 800]  # [True, False] # [0.261, 3, 6]
+    # "t1" [600, 700, 800, 900]
     # "ti" [2000, 3000, 4000, 5000]
     # "ni" [5e23,3.9e24,8.3e25,6.5e26,5e27]
     # "q" [1, -0.5, -1, -1.5]
@@ -42,10 +43,10 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    grid_params["t1"] = 800  # None  #
-    grid_params["a"] = -11  # None  #
+    grid_params["t1"] = 800  #None  #
+    grid_params["a"] = None  #-11  #
     all_params["Rmax_in"] = 100
-    all_params["dF"] = None  # "_almadust_p2_-0.75"
+    all_params["dF"] = "" # None  # "_almadust_p2_-0.75"
     all_params["num_CO"] = 100
 
     run_test(test_param, test_param_array, grid_params, all_params)

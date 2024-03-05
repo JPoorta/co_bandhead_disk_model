@@ -16,8 +16,11 @@ class Gridpoint:
                  ni=None,
                  p=None,
                  ti=None,
+                 t1=None,
+                 a=None,
+                 test_param=None,
+                 test_value=None,
                  inc_array=np.array([10, 20, 30, 40, 50, 60, 70, 80]),
-                 wvl_array="wvl_re",
                  ):
 
         # define default attributes
@@ -30,8 +33,11 @@ class Gridpoint:
         self.ni = ni
         self.p = p
         self.ti = ti
+        self.t1 = t1
+        self.a = a
+        self.test_param = test_param
+        self.test_value = test_value
         self.inc_array = inc_array
-        self.wvl_array = wvl_array
 
     def filename_co(self):
         """
@@ -39,7 +45,8 @@ class Gridpoint:
         :return: The concatenated strings of the gridpoint defining parameters.
         """
         try:
-            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri, self.dv0)
+            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri, t1=self.t1, a=self.a,
+                                              dv=self.dv0)
 
         except TypeError:
             print("WARNING: Variables ri (in AU),ti,p,ni,q of the gridpoint object are not (all) defined.")
