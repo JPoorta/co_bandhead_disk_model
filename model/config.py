@@ -269,9 +269,9 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None, t1=Non
                    + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
                    + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
     else:
-        base_str = str(np.int(ti)) + '_' + str(int(t1)) + '_' + str(int(a)) + '_'+ '{0:g}'.format(p) + '_' \
+        base_str = str(np.int(ti)) + '_' + str(int(t1)) + '_' + str(int(a)) + '_' \
                + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-               + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
+               + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 2))
     full_name = base_str
     if dv is not None:
         full_name = full_name + '_dv' + '{0:g}'.format(dv)
