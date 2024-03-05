@@ -17,6 +17,7 @@ import numpy as np
 import processing_and_plotting.plotting_routines as pltr
 from model.flat_disk_log_grid import run_grid_log_r
 import model.config as cfg
+from processing_and_plotting.Gridpoint import Gridpoint
 
 
 def run():
@@ -43,10 +44,10 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    grid_params["t1"] = 800  #None  #
-    grid_params["a"] = None  #-11  #
+    grid_params["t1"] = 800  # None  #
+    grid_params["a"] = -11  # None  #
     all_params["Rmax_in"] = 100
-    all_params["dF"] = "" # None  # "_almadust_p2_-0.75"
+    all_params["dF"] = ""  # None  # "_almadust_p2_-0.75"
     all_params["num_CO"] = 100
 
     run_test(test_param, test_param_array, grid_params, all_params)
@@ -83,6 +84,7 @@ def run_test(test_param, test_param_array, grid_params, all_params, quick_plots=
     :param test_param_array:
     :param grid_params:
     :param all_params:
+    :param quick_plots:
     :return:
     """
     star = all_params.get("stars")[0]
@@ -106,12 +108,14 @@ def run_test(test_param, test_param_array, grid_params, all_params, quick_plots=
             return
 
         grid = make_grid(**grid_params)
+        gp = Gridpoint(all_params=all_params, **grid_params)
+
         wvl, flux_tot_ext, flux_norm_ext, flux_norm_intp, conv_flux, conv_flux_norm = \
             run_grid_log_r(grid, **all_params)
 
         continuum_flux = flux_tot_ext / flux_norm_ext
 
-        pltr.plot_t_structure_gas(star, grid_params, all_params)
+        pltr.plot_t_structure_gas(gp)
 
         pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=test_param + " = " + str(value),
                                             fig_ax=(fig, ax))
@@ -122,7 +126,7 @@ def run_test(test_param, test_param_array, grid_params, all_params, quick_plots=
         plt.figure(2)
         plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
         pltr.plot_star(all_params.get("stars")[0])
-    pltr.plot_t_structure_dust(star, grid_params, all_params)
+    pltr.plot_t_structure_dust(gp)
     pltr.plot_t_structure_original(star)
     plt.figure(3)
     pltr.plot_obs_spectrum(all_params["stars"][0], fig_ax=(fig, ax))

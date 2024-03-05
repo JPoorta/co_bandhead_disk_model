@@ -3,7 +3,7 @@ import numpy as np
 
 import model.config as cfg
 import model.sed_calculations as seds
-from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, create_radial_array
+from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
 
 def plot_star(star):
@@ -171,60 +171,30 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     return fig, ax
 
 
-def obtain_model_arrays_from_params(star, grid_params, all_params):
-    """
-    With the all input parameters of a model, obtain the radial array with its gas-only mask and the temperature arrays
-    of dust and gas.
-
-    :param star:
-    :param grid_params:
-    :param all_params:
-    :return:
-    """
-
-    # Get the necessary parameters from the input.
-    modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = cfg.best_dust_fit_ALMA[star]
-    ri_au, ti, p, t1, a = (grid_params["ri"], grid_params["ti"], grid_params["p"], grid_params["t1"], grid_params["a"])
-    rmax_in, rmin_in, num_co = (all_params["Rmax_in"], all_params["Rmin_in"], all_params["num_CO"])
-
-    # Refer to functions in the model to get the output array.
-    rmax, rmin, ri, ri_d, r_co, co_only = \
-        create_radial_array(star, ri_au, rmax_in, rmin_in, ri_d_au, r_out_au, ti, num_co)
-    t_gas = create_t_gas_array(r_co, co_only, ti, ri, t1, a, p, p_d)
-    t_dust = create_t_dust_array(r_co, co_only, ti_d, ri_d, p_d)
-
-    return r_co, co_only, t_gas, t_dust
-
-
-def plot_t_structure_gas(star, grid_params, all_params):
+def plot_t_structure_gas(gp):
     """
     Using the 'obtain_model_arrays_from_params' function plot the CO temperature array.
 
-    :param star:
-    :param grid_params:
-    :param all_params:
+    :param gp: Gridpoint object
     :return:
     """
-    r_co, co_only, t_gas, t_dust = obtain_model_arrays_from_params(star, grid_params, all_params)
-    ri_au, ti, p, t1, a = (grid_params["ri"], grid_params["ti"], grid_params["p"], grid_params["t1"], grid_params["a"])
+    r_co, co_only, t_gas, t_dust = gp.obtain_model_arrays_from_params()
 
     plt.figure(5)
-    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(ti) + " ri=" + str(ri_au) +
-                                           " p=" + str(p) + " t1=" + str(t1) + " a=" + str(a))
+    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(gp.ti) + " ri=" + str(gp.ri) +
+                                           " p=" + str(gp.p) + " t1=" + str(gp.t1) + " a=" + str(gp.a))
     plt.legend()
     return
 
 
-def plot_t_structure_dust(star, grid_params, all_params):
+def plot_t_structure_dust(gp):
     """
     Using the 'obtain_model_arrays_from_params' function plot the dust temperature array.
 
-    :param star:
-    :param grid_params:
-    :param all_params:
+    :param gp: Gridpoint object
     :return:
     """
-    r_co, co_only, t_gas, t_dust = obtain_model_arrays_from_params(star, grid_params, all_params)
+    r_co, co_only, t_gas, t_dust = gp.obtain_model_arrays_from_params()
     plt.figure(5)
     plt.loglog(r_co[~co_only] / cfg.AU, t_dust, label="dust")
     plt.legend()
