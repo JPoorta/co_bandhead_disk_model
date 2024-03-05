@@ -30,26 +30,28 @@ def plot_star(star):
     return
 
 
-def plot_obs_spectrum(star):
+def plot_obs_spectrum(star, fig_ax=None):
     """
-    Function to read the observed and fitted spectra of CO paper I (Poorta et al., 2023)
+    Function to read and plot the observed and fitted spectra of CO paper I (Poorta et al., 2023)
 
     :param star: (str)
+    :param fig_ax: Optional fig and ax objects to plot on.
     :return:
     """
     wvl_obj, flux_obj, wvl, conv_flux, fit_mask = np.load(str(cfg.spectra_dir) + "/" + star + ".npy", allow_pickle=True)
-    plt.plot(wvl_obj, flux_obj, label="data")
-    plt.plot(wvl, conv_flux, label="best fit")
-    plt.legend()
+    plot_on_divided_axes(wvl_obj, flux_obj, fig_ax=fig_ax,
+                         **{"c": 'k', "label": "data", "zorder": -2, "alpha": 0.9, "lw": 0.6})
+    plot_on_divided_axes(wvl, conv_flux, fig_ax=fig_ax, **{"c": 'r', "label": "best fit", "lw": 0.8, "alpha": 1})
 
     return
 
 
-def plot_275_checks(wvl, no_dust=False, rmax_in=False):
+def plot_275_checks(wvl, fig_ax=None, no_dust=False, rmax_in=False):
     """
     Plots the original best fit model for B275 after ALMA dust SED implementation.
 
     :param wvl: model wavelength array
+    :param fig_ax: optional matplotlib figure and ax objects to plot on.
     :param no_dust: (Bool) if True plot the original dust=False option, in which the spectrum was only normalized
     to stellar continuum.
     :param rmax_in: (Bool) if True plot the best fit model after ALMA dust SED, after R_dust was removed from
@@ -60,24 +62,23 @@ def plot_275_checks(wvl, no_dust=False, rmax_in=False):
     """
 
     alma_dust = np.load(cfg.spectra_dir / "B275_alma_dust.npy")
-    plt.plot(wvl, alma_dust, label="alma_dust", zorder=-1)
+    plot_on_divided_axes(wvl, alma_dust, fig_ax=fig_ax, **{"label": "alma_dust", "zorder": -1})
     if no_dust:
         no_dust = np.load(cfg.spectra_dir / "B275_no_dust.npy")
-        plt.plot(wvl, no_dust, label="no dust", zorder=-1)
+        plot_on_divided_axes(wvl, no_dust, fig_ax=fig_ax, **{"label": "no dust", "zorder": -1})
     if rmax_in:
         rmax_in100 = np.load(cfg.spectra_dir / "B275_Rmax_in_100.npy")
-        plt.plot(wvl, rmax_in100, label="Rmax_in=100 (Rmax=60)", zorder=-1)
-    plt.legend()
+        plot_on_divided_axes(wvl, rmax_in100, fig_ax=fig_ax, **{"label": "Rmax_in=100 (Rmax=60)", "zorder": -1})
 
 
-def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux, label):
+def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, continuum_flux, label):
     """
+    Make some quick diagnostic plots of a model just run.
 
     :param star:
     :param wvl:
     :param flux_tot_ext:
     :param flux_norm_ext:
-    :param conv_flux_norm:
     :param continuum_flux:
     :param label:
     :return:
@@ -85,7 +86,6 @@ def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, c
     quick_plot_cont_subtr_ext_flux(star, wvl, flux_tot_ext, continuum_flux, label)
     quick_plot_norm_flux(star, wvl, flux_norm_ext, label)
     quick_plot_total_ext_flux(star, wvl, flux_tot_ext, label)
-    quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label)
 
     return
 
@@ -103,7 +103,6 @@ def quick_plot_norm_flux(star, wvl, flux_norm_ext, label):
     plt.title(star + " Normalized flux")
     plt.plot(wvl, flux_norm_ext, label=label)
     plt.vlines([1.558, 1.5779, 1.5982], 0, 2, linestyles='dashed')
-    # plt.ylim(0.99,1.12)
     plt.legend()
     return
 
@@ -115,13 +114,62 @@ def quick_plot_total_ext_flux(star, wvl, flux_tot_ext, label):
     return
 
 
-def quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label):
-    plt.figure(3)
-    plt.title(star + " Normalized, convolved flux")
-    plt.plot(wvl, conv_flux_norm, label=label)
-    # plt.ylim(0.99, 1.12)
-    plt.legend()
+def quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label, fig_ax=None):
+    title = star + " Normalized, convolved flux"
+    plot_on_divided_axes(wvl, conv_flux_norm, fig_ax=fig_ax, title=title, **{"label": label, "zorder": 0})
+
     return
+
+
+def create_3_in_1_figure(num):
+    """
+    Return a figure with figure number `num`, with 3 subplots to plot the three parts of the CO spectrum on.
+
+    :return:
+    """
+    return plt.subplots(1, 3, figsize=(16, 2), num=num, sharey=True, gridspec_kw={"width_ratios": [2, 3, 3]})
+
+
+def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
+    """
+    Plot the given x,y on a plot showing only the wavelength regions of interest, that is, second, first overtone and
+    fundamental. Also plots the legend.
+
+    :param x: (array) x data, should be wavelength in micron.
+    :param y: (array) y data, should be normalized flux.
+    :param num (int) figure number. Defaults to three.
+    :param fig_ax: (fig, ax) objects. If not provided will be created using 'create_3_in_1_figure'.
+    :param title: (str) title of the figure.
+    :param kwargs: arguments to pass on to plot, color, zorder etc.
+    :return: The fig and ax objects for further plotting.
+    """
+
+    if fig_ax is None:
+        fig, ax = create_3_in_1_figure(num)
+    else:
+        fig, ax = fig_ax
+
+    fig.suptitle(title)
+    for axi in ax:
+        axi.plot(x, y, **kwargs)
+
+    ax[0].set_xlim(1.55, 1.75)
+    ax[1].set_xlim(2.265, 2.9)
+    ax[2].set_xlim(4.28, 5.)
+    ax[0].set_ylim(0.95, 1.5)
+
+    ax[0].spines['right'].set_visible(False)
+    ax[1].spines['right'].set_visible(False)
+    ax[1].tick_params(labelright=False, right=False, left=False, labelleft=False)
+    ax[1].spines['left'].set_visible(False)
+    ax[2].spines['left'].set_visible(False)
+    ax[2].tick_params(labelright=True, right=True, left=False, labelleft=False)
+
+    fig.tight_layout()
+    ax[1].legend(loc='upper right')
+
+    return fig, ax
+
 
 def obtain_model_arrays_from_params(star, grid_params, all_params):
     """

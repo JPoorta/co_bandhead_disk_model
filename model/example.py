@@ -25,7 +25,13 @@ def run():
 
     # set the parameter to be tested (optional).
     test_param = "t1"  # "dust" # "ri"
-    test_param_array =  [600, 700] # [True, False] # [0.261, 3, 6]
+    test_param_array = [1000, 1500]  # [True, False] # [0.261, 3, 6]
+    # "ti" [2000, 3000, 4000, 5000]
+    # "ni" [5e23,3.9e24,8.3e25,6.5e26,5e27]
+    # "q" [1, -0.5, -1, -1.5]
+    # "ri" [0.261, 0.5, 1]
+    # "inc_deg" [20,30,40,60, 80]
+    #
 
     # Adjust defaults if wanted (optional).
     all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -36,8 +42,8 @@ def run():
                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     all_params["dust"] = True
     grid_params["p"] = -2
-    grid_params["t1"] = 800 # None  #
-    grid_params["a"] = -11 # None  #
+    grid_params["t1"] = 800  # None  #
+    grid_params["a"] = -11  # None  #
     all_params["Rmax_in"] = 100
     all_params["dF"] = None  # "_almadust_p2_-0.75"
     all_params["num_CO"] = 100
@@ -67,7 +73,7 @@ def make_grid(ti, t1, a, p, ni, q, ri):
     return [tiv, t1v, av, pv, niv, qv, riv]
 
 
-def run_test(test_param, test_param_array, grid_params, all_params):
+def run_test(test_param, test_param_array, grid_params, all_params, quick_plots=False):
     """
     For each value in `test_param_array` calculate and plot a model with otherwise default values. For more
     information on the input see :meth:`example.run`
@@ -80,6 +86,7 @@ def run_test(test_param, test_param_array, grid_params, all_params):
     """
     star = all_params.get("stars")[0]
 
+    fig, ax = pltr.create_3_in_1_figure(num=3)
     for value in test_param_array:
 
         # If the parameter is a grid parameter:
@@ -104,18 +111,21 @@ def run_test(test_param, test_param_array, grid_params, all_params):
         continuum_flux = flux_tot_ext / flux_norm_ext
 
         pltr.plot_t_structure_gas(star, grid_params, all_params)
-        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=test_param + " = " + str(value))
-        # pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
-        # label=test_param + " = " + str(value))
 
-    # plt.figure(2)
-    # plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
-    # pltr.plot_star(all_params.get("stars")[0])
+        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=test_param + " = " + str(value),
+                                            fig_ax=(fig, ax))
+        if quick_plots:
+            pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
+                                    label=test_param + " = " + str(value))
+    if quick_plots:
+        plt.figure(2)
+        plt.loglog(wvl, continuum_flux, '--', label="total continuum flux")
+        pltr.plot_star(all_params.get("stars")[0])
     pltr.plot_t_structure_dust(star, grid_params, all_params)
     pltr.plot_t_structure_original(star)
     plt.figure(3)
-    pltr.plot_obs_spectrum(all_params["stars"][0])
-    pltr.plot_275_checks(wvl, rmax_in=False)
+    pltr.plot_obs_spectrum(all_params["stars"][0], fig_ax=(fig, ax))
+    pltr.plot_275_checks(wvl, fig_ax=(fig, ax), rmax_in=False)
 
     return
 
