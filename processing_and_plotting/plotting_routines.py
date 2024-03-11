@@ -178,10 +178,11 @@ def plot_t_structure_gas(gp):
     :param gp: Gridpoint object
     :return:
     """
-    r_co, co_only, t_gas, t_dust = gp.obtain_model_arrays_from_params()
+    r_co, co_only = gp.obtain_radial_model_array()
+    t_gas = gp.obtain_model_t_gas()
 
     plt.figure(5)
-    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(gp.ti) + " ri=" + str(gp.ri) +
+    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(gp.ti) + " ri=" + str(gp.ri_au) +
                                            " p=" + str(gp.p) + " t1=" + str(gp.t1) + " a=" + str(gp.a))
     plt.legend()
     return
@@ -194,7 +195,8 @@ def plot_t_structure_dust(gp):
     :param gp: Gridpoint object
     :return:
     """
-    r_co, co_only, t_gas, t_dust = gp.obtain_model_arrays_from_params()
+    r_co, co_only = gp.obtain_radial_model_array()
+    t_dust = gp.obtain_model_t_dust()
     plt.figure(5)
     plt.loglog(r_co[~co_only] / cfg.AU, t_dust, label="dust")
     plt.legend()

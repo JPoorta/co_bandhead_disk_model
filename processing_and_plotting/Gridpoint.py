@@ -31,7 +31,8 @@ class Gridpoint:
         self.star = star
         self.results_folder = results_folder
         self.dv0 = dv0
-        self.ri = ri
+        self.ri_au = ri
+        self.ri_cm = ri * cfg.AU
         self.q = q
         self.ni = ni
         self.p = p
@@ -54,8 +55,11 @@ class Gridpoint:
             elif self.stars[0] != self.star:
                 print("ERROR: The explicit parameter `star` and the one passed through `all_params[\"stars\"]` are "
                       "not the same. Please check input.")
-
                 return
+
+        if self.star is None:
+            print("WARNING: no star is defined for this gridpoint.")
+            return
 
     def filename_co(self):
         """
@@ -63,7 +67,7 @@ class Gridpoint:
         :return: The concatenated strings of the gridpoint defining parameters.
         """
         try:
-            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri, t1=self.t1, a=self.a,
+            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri_au, t1=self.t1, a=self.a,
                                               dv=self.dv0)
 
         except TypeError:
@@ -74,24 +78,61 @@ class Gridpoint:
         # define combined attributes
 
     def path_co(self):
+        """
+        Path to folder where saved model arrays are stored.
+
+        :return: (str) path to folder
+        """
         return str(self.results_folder / self.star / self.sub_folder) + "/"
 
-    def obtain_model_arrays_from_params(self):
+    def obtain_dust_fit_params(self):
+        """
+        Obtain the best fit parameters of the dust model.
+
+        :return:
+        [0] temperature at ri,
+        [1] temp power law exponent
+        [2]
+        """
+        modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = cfg.best_dust_fit_ALMA[self.star]
+        # TODO: make this return a dictionary.
+        return ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au
+
+    def obtain_radial_model_array(self):
         """
         With the all input parameters of a model, obtain the radial array with its gas-only mask and the
         temperature arrays of dust and gas.
 
-        :return:
+        :return: the radial array of the gas disk in cm and the mask marking the dust free zone.
         """
 
         # Get the necessary parameters from the input.
-        modelname, ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = cfg.best_dust_fit_ALMA[self.star]
+        ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = self.obtain_dust_fit_params()
         rmax_in, rmin_in, num_co = (self.all_params["Rmax_in"], self.all_params["Rmin_in"], self.all_params["num_CO"])
 
-        # Refer to functions in the model to get the output array.
+        # Refer to function in the model to get the output array.
         rmax, rmin, ri, ri_d, r_co, co_only = \
-            create_radial_array(self.star, self.ri, rmax_in, rmin_in, ri_d_au, r_out_au, self.ti, num_co)
-        t_gas = create_t_gas_array(r_co, co_only, self.ti, ri, self.t1, self.a, self.p, p_d)
-        t_dust = create_t_dust_array(r_co, co_only, ti_d, ri_d, p_d)
+            create_radial_array(self.star, self.ri_au, rmax_in, rmin_in, ri_d_au, r_out_au, self.ti, num_co)
 
-        return r_co, co_only, t_gas, t_dust
+        return r_co, co_only
+
+    def obtain_model_t_gas(self):
+        """
+
+        :return: The gas temperature array of the model in K.
+        """
+
+        # Refer to functions in the model to get the output array.
+        r_co, co_only = self.obtain_radial_model_array()
+        p_d = self.obtain_dust_fit_params()[1]
+        return create_t_gas_array(r_co, co_only, self.ti, self.ri_cm, self.t1, self.a, self.p, p_d)
+
+    def obtain_model_t_dust(self):
+        """
+
+        :return: The dust temperature array of the model in K.
+        """
+        ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = self.obtain_dust_fit_params()
+        r_co, co_only = self.obtain_radial_model_array()
+
+        return create_t_dust_array(r_co, co_only, ti_d, ri_d_au*cfg.AU, p_d)
