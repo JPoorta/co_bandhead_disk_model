@@ -353,7 +353,7 @@ def calculate_flux(S, tau, i, R, wvl, convolve=False, int_theta=None, dv=None, d
     flux = np.array([np.trapz(intensity_conv[j, ...].T * R, x=R, axis=1) * np.cos(i) / cfg.d ** 2
                      for j in range(intensity.shape[0])])
     if "dF" in dF:
-        np.save(dF, [wvl, intensity_conv, R])
+        np.save(dF, intensity_conv)
 
     return flux, dF
 
@@ -547,7 +547,10 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, t1=t1[()], a=a[()])
             if dF is not None:
-                dF = str(cfg.results_folder / st / ("dF" + dF) / filename)
+                # TODO: Check if the grid saving can be used instead of this separate dF saving.
+                dF = str(cfg.results_folder / st / ("dF" + dF) /
+                         cfg.filename_co_grid_point(ti, p, ni, q, ri_R, dv=dv0_cm[0]/1.e5, t1=t1[()], a=a[()]))
+                np.save(dF+"_wvl", wvl)
             else:
                 dF = ""
 
