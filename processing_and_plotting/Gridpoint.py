@@ -9,7 +9,7 @@ class Gridpoint:
     Object with methods to apply to gridpoints in the parameter space of a model grid.
     """
 
-    def __init__(self, sub_folder="",
+    def __init__(self, sub_folder=None,
                  star=None,
                  results_folder=cfg.results_folder,
                  dv0=None,
@@ -48,6 +48,8 @@ class Gridpoint:
             self.dv0 = self.all_params["dv0"]
             self.inc_deg = self.all_params["inc_deg"]
             self.stars = self.all_params["stars"]
+            if self.sub_folder is None:
+                self.sub_folder = "dF"+self.all_params["dF"]
             if len(self.stars) > 1:
                 print("WARNING: an array of stars was passed to Gridpoint. By default `self.stars[0]` will be used.")
             if self.star is None:
@@ -68,10 +70,11 @@ class Gridpoint:
         """
         try:
             return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri_au, t1=self.t1, a=self.a,
-                                              dv=self.dv0)
+                                              dv=self.dv0[0])
 
         except TypeError:
-            print("WARNING: Variables ri (in AU),ti,p,ni,q of the gridpoint object are not (all) defined.")
+            print("WARNING: Variables ri (in AU),ti,p,ni,q, t1, a, dv0 of the gridpoint object are not (all) "
+                  "correctly defined.")
 
             return
 
@@ -84,6 +87,22 @@ class Gridpoint:
         :return: (str) path to folder
         """
         return str(self.results_folder / self.star / self.sub_folder) + "/"
+
+    def full_path(self):
+        """
+
+        :return: Full path including the filename, exluding file ending.
+        """
+        return self.path_co() + self.filename_co()
+
+    def saved_wvl_array(self):
+        """
+        Only works if a wavelength array was indeed saved for this model in the specified subfolder.
+
+        :return: saved wavelength array.
+        """
+        return np.load(self.full_path() + "_wvl.npy")
+
 
     def obtain_dust_fit_params(self):
         """
