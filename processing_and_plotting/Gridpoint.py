@@ -49,7 +49,7 @@ class Gridpoint:
             self.inc_deg = self.all_params["inc_deg"]
             self.stars = self.all_params["stars"]
             if self.sub_folder is None and self.all_params["dF"] is not None:
-                self.sub_folder = "dF"+self.all_params["dF"]
+                self.sub_folder = "dF" + self.all_params["dF"]
             if len(self.stars) > 1:
                 print("WARNING: an array of stars was passed to Gridpoint. By default `self.stars[0]` will be used.")
             if self.star is None:
@@ -195,7 +195,7 @@ class Gridpoint:
         ti_d, p_d, ni_d, q_d, i_d, ri_d_au, r_turn, beta, r_out_au = self.obtain_dust_fit_params()
         r_co, co_only = self.obtain_radial_model_array()
 
-        return create_t_dust_array(r_co, co_only, ti_d, ri_d_au*cfg.AU, p_d)
+        return create_t_dust_array(r_co, co_only, ti_d, ri_d_au * cfg.AU, p_d)
 
     def calc_flux(self, intensity=None, r=None):
         """
@@ -250,3 +250,34 @@ class Gridpoint:
             wvl_indices = np.arange(len(wvl))
         return np.trapz(flux[:, wvl_indices], x=wvl[wvl_indices])
 
+    def calc_cumulative_flux(self, wvl=None, intensity=None, r=None):
+        """
+        Calculate the normalized cumulative flux as a function of disk radius.
+
+        :param wvl: wavelength array in micron
+        :param intensity: (3D array) intensities, shape [len(dv0), len(r), len(wvl)]
+        :param r:
+        :return: 3D array with dimensions [len(dv0), len(r), len(wvl[])] that is,
+        the cumulative flux as a function of r.
+        """
+        if intensity is None:
+            intensity = self.get_total_co_intensity()
+        if wvl is None:
+            wvl = self.saved_wvl_array()
+        if r is None:
+            r = self.r_co
+
+        second_ot = np.array(np.where(wvl < 2.25))[0]  # 1.85
+        first_ot = np.where(np.logical_and(wvl > 2.25, wvl < 4.2))[0]  # 3.25
+        fundamental = np.where(wvl > 4.2)[0]
+
+        flux = self.calc_flux()
+
+        dF = np.zeros((intensity.shape[0], intensity.shape[1], 3))
+        for n, el in enumerate([second_ot, first_ot, fundamental]):
+            total = self.wvl_integrated_flux(flux=flux, wvl=wvl, wvl_indices=el)
+            for k in range(len(r)):
+                flux_till_k = self.calc_flux(intensity=intensity[:, :k, el], r=r[:k])
+                dF[:, k, n] = self.wvl_integrated_flux(flux=flux_till_k, wvl=wvl[el]) / total
+
+        return dF

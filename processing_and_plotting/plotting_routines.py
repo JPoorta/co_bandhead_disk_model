@@ -221,3 +221,31 @@ def plot_t_structure_original(star):
     plt.loglog(r_co / cfg.AU, t_gas, linestyle='--', c='k', label="original power law")
     plt.legend()
     return
+
+
+def plot_cum_flux(gp, ):
+    """
+
+    :param gp: (Gridpoint object) defines the model,
+    :return:
+    """
+
+    full_path = gp.full_path()
+    cum_flux_extension = "_dF_CO_lines"
+
+    # Check if calculations have been made.
+    try:
+        dF_disk, r_disk_AU = np.load(full_path + cum_flux_extension + ".npy")
+    # If not do the total calculation.
+    except FileNotFoundError:
+        dF_disk = gp.calc_cumulative_flux()
+        r_disk_AU = gp.r_co / cfg.AU
+        np.save(full_path + cum_flux_extension, [dF_disk, r_disk_AU])
+
+    plt.figure(20)
+    label_base = gp.test_param + " = " + str(gp.test_value)
+    p = plt.semilogx(r_disk_AU, dF_disk[0, :, 2], label= label_base + "; fund")[0]
+    plt.semilogx(r_disk_AU, dF_disk[0, :, 1], '--', c=p.get_color(), label=label_base + "; 1st ot")
+    plt.semilogx(r_disk_AU, dF_disk[0, :, 0], ':', c=p.get_color(), label=label_base + "; 2nd ot")
+
+    return
