@@ -91,18 +91,56 @@ class Gridpoint:
     def full_path(self):
         """
 
-        :return: Full path including the filename, exluding file ending.
+        :return: Full path including the filename, excluding file ending.
         """
         return self.path_co() + self.filename_co()
 
     def saved_wvl_array(self):
         """
-        Only works if a wavelength array was indeed saved for this model in the specified subfolder.
+        Only works if a wavelength array was indeed saved for this model in the specified 'subfolder'.
 
         :return: saved wavelength array.
         """
         return np.load(self.full_path() + "_wvl.npy")
 
+    def saved_intensity_conv_co(self):
+        """
+        Reads the saved convolved intensity from the part of the disk where only CO gas exists.
+        Only works if for this model this was saved in 'subfolder'.
+
+        :return: the saved, disk convolved intensity of the CO gas.
+        """
+        return np.load(self.full_path() + "_CO.npy")
+
+    def saved_intensity_conv_mix(self):
+        """
+        Reads the saved total convolved intensity from the part of the disk where both CO and dust exist.
+        Only works if for this model this was saved in 'subfolder'.
+
+        :return: the saved, disk convolved intensity of dust and gas mix.
+        """
+        return np.load(self.full_path() + "_mix.npy")
+
+    def saved_intensity_conv_dust(self):
+        """
+        Reads the saved convolved intensity of the dust (from the part of the disk where both CO and dust exist).
+        Only works if for this model this was saved in 'subfolder'.
+
+        :return: the saved, disk convolved intensity of dust and gas mix.
+        """
+        return np.load(self.full_path() + "_dust.npy")
+
+    def get_total_co_intensity(self):
+        """
+        Concatenate the co intensity with the mix-dust intensity to obtain the full CO intensity over the entire disk.
+
+        :return: the total CO gas intensity (radial dimension should cover entire disk).
+        """
+        intensity_conv_co = self.saved_intensity_conv_co()
+        intensity_conv_mix = self.saved_intensity_conv_mix()
+        intensity_conv_dust = self.saved_intensity_conv_dust()
+
+        return np.concatenate((intensity_conv_co, intensity_conv_mix - intensity_conv_dust), axis=1)
 
     def obtain_dust_fit_params(self):
         """
