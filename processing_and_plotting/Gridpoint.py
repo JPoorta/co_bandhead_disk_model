@@ -58,6 +58,9 @@ class Gridpoint:
                 print("ERROR: The explicit parameter `star` and the one passed through `all_params[\"stars\"]` are "
                       "not the same. Please check input.")
                 return
+            r_co, co_only = self.obtain_radial_model_array()
+            self.r_co = r_co
+            self.co_only = co_only
 
         if self.star is None:
             print("WARNING: no star is defined for this gridpoint.")
@@ -193,3 +196,57 @@ class Gridpoint:
         r_co, co_only = self.obtain_radial_model_array()
 
         return create_t_dust_array(r_co, co_only, ti_d, ri_d_au*cfg.AU, p_d)
+
+    def calc_flux(self, intensity=None, r=None):
+        """
+        Integrate 3D intensity [dv0, R, wvl] over R to obtain flux.
+        *NOT corrected for inclination and distance*
+        If intensity in cgs, then flux in erg/s/micron, so integrated over the disk, but not corrected for distance.
+        If intensity and radial array provided, units should be in agreement.
+        By default, self.r_co and total CO intensity over the disk (so without dust)
+         will be used, based on saved arrays.
+
+        :return: (2D array) flux with dimensions [len(dv0), len(wvl)]
+        """
+        if intensity is None:
+            intensity = self.get_total_co_intensity()
+        if r is None:
+            r = self.r_co
+        flux = np.trapz(intensity * r[None, :, None], x=r, axis=1)
+
+        return flux
+
+    def calc_inclined_d_corrected_flux(self, flux=None, i=None):
+        """
+         Inclination corrected flux.
+
+        :param flux:
+        :param i: in degrees.
+        :return:
+        """
+        if flux is None:
+            flux = self.calc_flux()
+        if i is None:
+            i = self.inc_deg[0]
+        inc_rad = i * np.pi / 180  # inclination from degrees to radians
+        return flux * np.cos(inc_rad) / cfg.d ** 2
+
+    def wvl_integrated_flux(self, flux=None, wvl=None, wvl_indices=None):
+        """
+        Integrate the flux over (a part of) the wavelength array.
+        Units of flux and wavelength should be in agreement; e.g. flux in erg/s/cm^2/micron and wvl in micron.
+
+        :param flux:
+        :param wvl:
+        :param wvl_indices: optional index mask for wavelength.
+        If not given, integration will be done over entire array.
+        :return:
+        """
+        if flux is None:
+            flux = self.calc_flux()
+        if wvl is None:
+            wvl = self.saved_wvl_array()
+        if wvl_indices is None:
+            wvl_indices = np.arange(len(wvl))
+        return np.trapz(flux[:, wvl_indices], x=wvl[wvl_indices])
+
