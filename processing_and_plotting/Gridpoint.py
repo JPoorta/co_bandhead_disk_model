@@ -48,7 +48,7 @@ class Gridpoint:
             self.dv0 = self.all_params["dv0"]
             self.inc_deg = self.all_params["inc_deg"]
             self.stars = self.all_params["stars"]
-            if self.sub_folder is None:
+            if self.sub_folder is None and self.all_params["dF"] is not None:
                 self.sub_folder = "dF"+self.all_params["dF"]
             if len(self.stars) > 1:
                 print("WARNING: an array of stars was passed to Gridpoint. By default `self.stars[0]` will be used.")
