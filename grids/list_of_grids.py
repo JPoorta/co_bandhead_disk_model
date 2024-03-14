@@ -54,7 +54,8 @@ def grid_for_main_figure_p4(star=None):
 
 def common_test_grid(test_param_dict=None):
     """
-    Grid most commonly used in preparation for P4 to test stuff.
+    Grid most commonly used in preparation for P4 to test stuff with adaptable test parameter grid.
+    Note that the arrays for cumulative flux calculation are being saved for this grid.
 
     :return:
     """
@@ -67,5 +68,26 @@ def common_test_grid(test_param_dict=None):
     all_params["vlower"] = vlower
     all_params["Rmax_in"] = 100
     all_params["dF"] = ""
+
+    return grid_params, all_params, test_param_dict
+
+
+def common_test_grid_original_t(test_param_dict=None):
+    """
+    Grid to show what the effect is of the original temperature structure.
+    Note that the outer disk radius "Rmax_in" is *not* the original value 'None'.
+
+    :return:
+    """
+
+    grid_params, all_params = cfg.get_default_params("B275")
+    if test_param_dict is None:
+        test_param_dict = {"dust": [True, False]}
+    vupper, vlower = vibrational_levels_for_3_ro_vib_series()
+    all_params["vupper"] = vupper
+    all_params["vlower"] = vlower
+    grid_params["t1"] = None
+    grid_params["a"] = -11
+    all_params["Rmax_in"] = 100
 
     return grid_params, all_params, test_param_dict
