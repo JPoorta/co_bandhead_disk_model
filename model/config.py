@@ -105,7 +105,7 @@ def get_default_params(star=None):
                   "maxmin": (1.3, 1.02),
                   "lisa_it": None,
                   "saved_list": None,
-                  "dF":None
+                  "dF": None
                   }
 
     return grid_params, all_params

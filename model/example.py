@@ -16,41 +16,15 @@ import numpy as np
 
 import processing_and_plotting.plotting_routines as pltr
 from model.flat_disk_log_grid import run_grid_log_r
-import model.config as cfg
 from processing_and_plotting.Gridpoint import Gridpoint
+from grids.list_of_grids import common_test_grid
 
 
 def run():
-    star = "B275"
-    grid_params, all_params = cfg.get_default_params(star)
+    grid_params, all_params, test_param_dict = common_test_grid()
 
-    # set the parameter to be tested (optional).
-    test_param = "t1"  # "dust" # "ri"
-    test_param_array = [700, 800]  # [True, False] # [0.261, 3, 6]
-    # "t1" [600, 700, 800, 900]
-    # "ti" [2000, 3000, 4000, 5000]
-    # "ni" [5e23,3.9e24,8.3e25,6.5e26,5e27]
-    # "q" [1, -0.5, -1, -1.5]
-    # "ri" [0.261, 0.5, 1]
-    # "inc_deg" [20,30,40,60, 80]
-    #
-
-    # Adjust defaults if wanted (optional).
-    all_params["vupper"] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-                            2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    all_params["vlower"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    all_params["dust"] = True
-    grid_params["p"] = -2
-    grid_params["t1"] = 800  # None  #
-    grid_params["a"] = -11  # None  #
-    all_params["Rmax_in"] = 100
-    all_params["dF"] = ""  # None  # "_almadust_p2_-0.75"
-    all_params["num_CO"] = 100
-
-    run_test(test_param, test_param_array, grid_params, all_params)
+    for test_param, test_param_array in test_param_dict.items():
+        run_test(test_param, test_param_array, grid_params, all_params)
 
     plt.show()
 
@@ -120,7 +94,7 @@ def run_test(test_param, test_param_array, grid_params, all_params, quick_plots=
         pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=test_param + " = " + str(value),
                                             fig_ax=(fig, ax))
         if quick_plots:
-            pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, conv_flux_norm, continuum_flux,
+            pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, continuum_flux,
                                     label=test_param + " = " + str(value))
     if quick_plots:
         plt.figure(2)
