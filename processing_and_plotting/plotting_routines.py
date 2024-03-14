@@ -3,6 +3,7 @@ import numpy as np
 
 import model.config as cfg
 import model.sed_calculations as seds
+import processing_and_plotting.Gridpoint as Gridpoint
 from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
 
@@ -223,29 +224,43 @@ def plot_t_structure_original(star):
     return
 
 
-def plot_cum_flux(gp, ):
+def plot_cum_flux(gp,):
     """
 
     :param gp: (Gridpoint object) defines the model,
     :return:
     """
 
-    full_path = gp.full_path()
-    cum_flux_extension = "_dF_CO_lines"
-
-    # Check if calculations have been made.
-    try:
-        dF_disk, r_disk_AU = np.load(full_path + cum_flux_extension + ".npy")
-    # If not do the total calculation.
-    except FileNotFoundError:
-        dF_disk = gp.calc_cumulative_flux()
-        r_disk_AU = gp.r_co / cfg.AU
-        np.save(full_path + cum_flux_extension, [dF_disk, r_disk_AU])
+    dF_disk, r_disk_AU = gp.return_cum_flux()
 
     plt.figure(20)
     label_base = gp.test_param + " = " + str(gp.test_value)
-    p = plt.semilogx(r_disk_AU, dF_disk[0, :, 2], label= label_base + "; fund")[0]
+    p = plt.semilogx(r_disk_AU, dF_disk[0, :, 2], label=label_base + "; fund")[0]
     plt.semilogx(r_disk_AU, dF_disk[0, :, 1], '--', c=p.get_color(), label=label_base + "; 1st ot")
     plt.semilogx(r_disk_AU, dF_disk[0, :, 0], ':', c=p.get_color(), label=label_base + "; 2nd ot")
+
+    return
+
+
+def plot_cum_flux_grid(grid):
+    """
+    Plot the cumulative flux plot of a grid as defines in list_of_grids.
+
+    :param grid: (list of three dicts) grid as defined in 'list_of_grids'. This grid must already have been run and
+    saved through the parameter "dF".
+    :return:
+    """
+
+    grid_params, all_params, test_param_dict = grid
+
+    for test_param, test_param_array in test_param_dict.items():
+        for value in test_param_array:
+            grid_params[test_param] = value
+            gp = Gridpoint.Gridpoint(**grid_params, all_params=all_params,
+                                     test_param=test_param, test_value=value)
+            plot_cum_flux(gp)
+
+    plt.legend()
+    plt.show()
 
     return

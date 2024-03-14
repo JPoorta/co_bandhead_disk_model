@@ -281,3 +281,18 @@ class Gridpoint:
                 dF[:, k, n] = self.wvl_integrated_flux(flux=flux_till_k, wvl=wvl[el]) / total
 
         return dF
+
+    def return_cum_flux(self):
+
+        cum_flux_extension = "_dF_CO_lines"
+
+        # Check if calculations have been made.
+        try:
+            dF_disk, r_disk_AU = np.load(self.full_path() + cum_flux_extension + ".npy")
+        # If not do the total calculation.
+        except FileNotFoundError:
+            dF_disk = self.calc_cumulative_flux()
+            r_disk_AU = self.r_co / cfg.AU
+            np.save(self.full_path() + cum_flux_extension, [dF_disk, r_disk_AU])
+
+        return dF_disk, r_disk_AU
