@@ -47,6 +47,7 @@ def grid_for_main_figure_p4(star=None):
     all_params["num_CO"] = 100
     all_params["convolve"] = False
     all_params["maxmin"] = [5, -5]
+    all_params["print_Rs"] = False
     all_params["save"] = "main_fig_p4"
 
     return grid_params, all_params, test_param_dict

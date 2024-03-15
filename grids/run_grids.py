@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 
 import processing_and_plotting.plotting_routines as pltr
+import model.flat_disk_log_grid as fld
 import model.example as ex
 import model.config as cfg
+import grids.list_of_grids as list_of_grids
 
 
 def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False, save=None, save_t_plot=None):
@@ -34,4 +36,21 @@ def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False, save=No
 
     return
 
-# TODO: define a function to save the grid for the main figure in P4.
+
+def save_run_variation_around_one_model(grid=None):
+
+    if grid is None:
+        grid = list_of_grids.grid_for_main_figure_p4()
+
+    grid_params, all_params, test_param_dict = grid
+
+    for test_param, test_param_array in test_param_dict.items():
+        grid_params_use = grid_params.copy()
+        if test_param in grid_params.keys():
+            grid_params_use[test_param] = test_param_array
+
+        # If it is one of the parameters which take an iterable as input, it is automatically iterated over.
+        model_grid = ex.make_grid(**grid_params_use)
+        fld.run_grid_log_r(model_grid, **all_params)
+
+    return

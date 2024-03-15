@@ -547,12 +547,11 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, t1=t1[()], a=a[()])
             if dF is not None:
-                # TODO: Check if the grid saving can be used instead of this separate dF saving.
-                dF = str(cfg.results_folder / st / ("dF" + dF) /
+                dF_use = str(cfg.results_folder / st / ("dF" + dF) /
                          cfg.filename_co_grid_point(ti, p, ni, q, ri_R, dv=dv0_cm[0]/1.e5, t1=t1[()], a=a[()]))
-                np.save(dF+"_wvl", wvl)
+                np.save(dF_use+"_wvl", wvl)
             else:
-                dF = ""
+                dF_use = ""
 
             if saved_list is not None:
                 if not np.any([filename in listed for listed in to_be_calculated]):
@@ -652,7 +651,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # CO flux where there is only gas.
                     flux_CO, dF_CO = calculate_flux(S_CO, tau_CO, i, R_CO_only, wvl,
                                                     convolve=True, int_theta=int_theta_CO, dv=dv,
-                                                    plot=None, dF=dF + "_CO")  # e.g. plot = ['T_eff= ',int(t_gas[0])])
+                                                    plot=None, dF=dF_use + "_CO")  # e.g. plot = ['T_eff= ',int(t_gas[0])])
 
                 # --------------------------------------------------------------
                 # Total fluxes for different cases.
@@ -682,7 +681,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     # ---------------------------------------------------------
                     # Dust continuum from part where gas and dust overlap.
                     # ---------------------------------------------------------
-                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_CO[~CO_only], wvl, dF=dF + "_dust")
+                    flux_dust, dF_flux_dust = calculate_flux(BB_dust, tau_cont, i, R_CO[~CO_only], wvl, dF=dF_use + "_dust")
 
                     # ---------------------------------------------------------
                     # Total flux from of part where gas and dust overlap.
@@ -693,7 +692,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                                                 args=(vel_Kep, R_CO[~CO_only], Mstar, i), n=100)[0]
 
                     flux_mix, dF_mix = calculate_flux(S_mix, tau_mix, i, R_CO[~CO_only], wvl,
-                                                      convolve=True, int_theta=int_theta_dust, dv=dv, dF=dF + "_mix")
+                                                      convolve=True, int_theta=int_theta_dust, dv=dv, dF=dF_use + "_mix")
 
                     # ---------------------------------------------------------
                     # Total flux of all parts before extinction.
