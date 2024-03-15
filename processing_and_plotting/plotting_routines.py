@@ -6,6 +6,16 @@ import model.sed_calculations as seds
 import processing_and_plotting.Gridpoint as Gridpoint
 from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
+label_dict = {"ri": r"$R_i$",
+              "ti": r"$(T_{\rm ex})_i$",
+              "p": r"$p$",
+              "ni": r"$(N_{\rm H_2})_i$",
+              "q": r"$q$",
+              "t1": r"$T_1$",
+              "a": r"$a$",
+              "tex": r"$T_{\rm ex}$",
+              "R": r"$R$ (AU)"}
+
 
 def plot_star(star):
     """
@@ -42,7 +52,7 @@ def plot_obs_spectrum(star, fig_ax=None):
     wvl_obj, flux_obj, wvl, conv_flux, fit_mask = np.load(str(cfg.spectra_dir) + "/" + star + ".npy", allow_pickle=True)
     plot_on_divided_axes(wvl_obj, flux_obj, fig_ax=fig_ax,
                          **{"c": 'k', "label": "data", "zorder": -2, "alpha": 0.9, "lw": 0.6})
-    plot_on_divided_axes(wvl, conv_flux, fig_ax=fig_ax, **{"c": 'r', "label": "best fit", "lw": 0.8, "alpha": 1})
+    plot_on_divided_axes(wvl, conv_flux, fig_ax=fig_ax, **{"c": 'r', "label": "best fit", "lw": 0.6, "alpha": 1})
 
     return
 
@@ -63,7 +73,7 @@ def plot_275_checks(wvl, fig_ax=None, no_dust=False, rmax_in=False):
     """
 
     alma_dust = np.load(cfg.spectra_dir / "B275_alma_dust.npy")
-    plot_on_divided_axes(wvl, alma_dust, fig_ax=fig_ax, **{"label": "alma_dust", "zorder": -1})
+    plot_on_divided_axes(wvl, alma_dust, fig_ax=fig_ax, **{"label": r"original $T_{\rm ex}$", "zorder": -1})
     if no_dust:
         no_dust = np.load(cfg.spectra_dir / "B275_no_dust.npy")
         plot_on_divided_axes(wvl, no_dust, fig_ax=fig_ax, **{"label": "no dust", "zorder": -1})
@@ -117,7 +127,8 @@ def quick_plot_total_ext_flux(star, wvl, flux_tot_ext, label):
 
 def quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label, fig_ax=None):
     title = star + " Normalized, convolved flux"
-    plot_on_divided_axes(wvl, conv_flux_norm, fig_ax=fig_ax, title=title, **{"label": label, "zorder": 0})
+    plot_on_divided_axes(wvl, conv_flux_norm, fig_ax=fig_ax, title=title, **{"label": label, "zorder": 0,
+                                                                             "lw": 0.7})
 
     return
 
@@ -128,7 +139,14 @@ def create_3_in_1_figure(num):
 
     :return:
     """
-    return plt.subplots(1, 3, figsize=(16, 2), num=num, sharey=True, gridspec_kw={"width_ratios": [2, 3, 3]})
+    return plt.subplots(1, 3, figsize=(11, 2.6), num=num, sharey=True,
+                        gridspec_kw={"width_ratios": [1.5, 3, 3],
+                                     "top": 0.975,
+                                     "bottom": 0.20,
+                                     "left": 0.035,
+                                     "right": 0.965,
+                                     "hspace": 0.2,
+                                     "wspace": 0.045})
 
 
 def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
@@ -153,9 +171,10 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     fig.suptitle(title)
     for axi in ax:
         axi.plot(x, y, **kwargs)
+        axi.set_xlabel(r"$\lambda (\mu$m)")
 
-    ax[0].set_xlim(1.55, 1.75)
-    ax[1].set_xlim(2.265, 2.9)
+    ax[0].set_xlim(1.55, 1.70)  # 1.75
+    ax[1].set_xlim(2.265, 2.6)  # 2.9
     ax[2].set_xlim(4.28, 5.)
     ax[0].set_ylim(0.95, 1.5)
 
@@ -166,13 +185,12 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     ax[2].spines['left'].set_visible(False)
     ax[2].tick_params(labelright=True, right=True, left=False, labelleft=False)
 
-    fig.tight_layout()
-    ax[1].legend(loc='upper right')
+    ax[0].legend(loc='upper left',)   #  bbox_to_anchor=(-0.05, 1)
 
     return fig, ax
 
 
-def plot_t_structure_gas(gp):
+def plot_t_structure_gas(gp, ):
     """
     Using the 'obtain_model_arrays_from_params' function plot the CO temperature array.
 
@@ -182,10 +200,19 @@ def plot_t_structure_gas(gp):
     r_co, co_only = gp.obtain_radial_model_array()
     t_gas = gp.obtain_model_t_gas()
 
-    plt.figure(5)
-    plt.loglog(r_co / cfg.AU, t_gas, label="T_gas" + " ti=" + str(gp.ti) + " ri=" + str(gp.ri_au) +
-                                           " p=" + str(gp.p) + " t1=" + str(gp.t1) + " a=" + str(gp.a))
+    plt.figure(5, figsize=(5, 4))
+    label_base = label_dict["ti"] + "=" + str(gp.ti) + " " + label_dict["ri"] + "=" + str(gp.ri_au) + " "
+    if None in [gp.t1, gp.a]:
+        label = label_base + label_dict["p"] + "=" + str(gp.p)
+    else:
+        label = label_base + label_dict["t1"] + "=" + str(gp.t1) + " " + label_dict["a"] + "=" + str(gp.a)
+    plt.loglog(r_co / cfg.AU, t_gas, label=label)
+
+    plt.ylabel(r"$T$ (K)")
+    plt.xlabel(label_dict["R"])
     plt.legend()
+    plt.tight_layout()
+
     return
 
 
@@ -224,7 +251,7 @@ def plot_t_structure_original(star):
     return
 
 
-def plot_cum_flux(gp,):
+def plot_cum_flux(gp, ):
     """
 
     :param gp: (Gridpoint object) defines the model,

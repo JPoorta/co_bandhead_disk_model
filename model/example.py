@@ -87,7 +87,8 @@ def run_test(test_param, test_param_array, grid_params, all_params, figax, quick
 
         pltr.plot_t_structure_gas(gp)
 
-        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=test_param + " = " + str(value),
+        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=pltr.label_dict[test_param]
+                                                                             + " = " + str(value),
                                             fig_ax=(fig, ax))
         if quick_plots:
             pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, continuum_flux,

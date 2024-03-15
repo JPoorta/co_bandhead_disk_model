@@ -163,6 +163,8 @@ if "GENERATING_SPHINX_DOCS" in os.environ:
 results_folder = project_folder / "results/"
 # Folder for data files
 aux_files = project_folder / "aux_files/"
+# Folder for plots
+plot_folder = project_folder / "plots/"
 
 # folder with Kurucz models
 Kurucz_dir = aux_files / "Castelli-Kurucz/"

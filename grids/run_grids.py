@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 
 import processing_and_plotting.plotting_routines as pltr
 import model.example as ex
+import model.config as cfg
 
 
-def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False):
+def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False, save=None, save_t_plot=None):
     """
     Run the grid not as a grid, but going through each test value separately as set in 'model.example'.
 
@@ -19,14 +20,18 @@ def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False):
     fig, ax = pltr.create_3_in_1_figure(num=3)
     for test_param, test_param_array in test_param_dict.items():
         gp, star, wvl, continuum_flux = ex.run_test(test_param, test_param_array, grid_params.copy(), all_params.copy(),
-                                    (fig, ax), quick_plots)
+                                                    (fig, ax), quick_plots)
 
     ex.finish_plots(gp, star, wvl, continuum_flux, (fig, ax), quick_plots, plot_B275_checks)
 
+    if save is not None:
+        fig.savefig(cfg.plot_folder / (save + ".pdf"))
+    if save_t_plot is not None:
+        plt.figure(5)
+        plt.savefig(cfg.plot_folder / (save_t_plot + ".pdf"))
+
     plt.show()
 
-
     return
-
 
 # TODO: define a function to save the grid for the main figure in P4.
