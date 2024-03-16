@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import model.config as cfg
 
 from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, create_radial_array
@@ -6,12 +7,11 @@ from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, cr
 
 class Gridpoint:
     """
-    Object with methods to apply to gridpoints in the parameter space of a model grid.
+    Object with methods to apply to grid points in the parameter space of a model grid.
     """
 
-    def __init__(self, sub_folder=None,
+    def __init__(self,
                  star=None,
-                 results_folder=cfg.results_folder,
                  dv0=None,
                  ri=None,
                  q=None,
@@ -27,9 +27,7 @@ class Gridpoint:
                  ):
 
         # define default attributes
-        self.sub_folder = sub_folder
         self.star = star
-        self.results_folder = results_folder
         self.dv0 = dv0
         self.ri_au = ri
         self.ri_cm = ri * cfg.AU
@@ -48,16 +46,17 @@ class Gridpoint:
             self.dv0 = self.all_params["dv0"]
             self.inc_deg = self.all_params["inc_deg"]
             self.stars = self.all_params["stars"]
-            if self.sub_folder is None and self.all_params["dF"] is not None:
-                self.sub_folder = "dF" + self.all_params["dF"]
-            if len(self.stars) > 1:
-                print("WARNING: an array of stars was passed to Gridpoint. By default `self.stars[0]` will be used.")
+            if self.all_params["dF"] is not None:
+                self.sub_folder_df = "dF" + self.all_params["dF"]
+            if self.all_params["save"] is not None:
+                self.grid_folder = self.all_params["save"]
+            # Define the star for the grid from all_params if not already explicitly defined.
             if self.star is None:
                 self.star = self.stars[0]
-            elif self.stars[0] != self.star:
-                print("ERROR: The explicit parameter `star` and the one passed through `all_params[\"stars\"]` are "
-                      "not the same. Please check input.")
-                return
+                if len(self.stars) > 1:
+                    print("WARNING: an array of stars was passed to Gridpoint. "
+                          "By default `stars[0]`("+self.star+") is used.")
+            # When all_params is defined the radial array and its mask is added to attributes.
             r_co, co_only = self.obtain_radial_model_array()
             self.r_co = r_co
             self.co_only = co_only
@@ -81,30 +80,67 @@ class Gridpoint:
 
             return
 
-        # define combined attributes
-
-    def path_co(self):
+    def path_co_df(self):
         """
-        Path to folder where saved model arrays are stored.
+        Path to folder where saved intensity and wavelength arrays for the calculation of cumulative flux are stored.
 
         :return: (str) path to folder
         """
-        return str(self.results_folder / self.star / self.sub_folder) + "/"
+        return str(cfg.results_folder / self.star / self.sub_folder_df) + "/"
 
-    def full_path(self):
+    def path_grid_folder(self):
+        """
+        Path to folder where the grid of models is stored.
+
+        :return: (str) path to folder
+        """
+        return str(cfg.results_folder / self.star / self.grid_folder) + "/"
+
+    def full_path_model_file(self):
+        """
+        Full path including the filename to model file, including file ending.
+
+        :return:
+        """
+        return self.path_grid_folder() + self.filename_co() + ".npy"
+
+    def full_path_df(self):
         """
 
-        :return: Full path including the filename, excluding file ending.
+        :return: Full path including the filename to intensity and wvl arrays for cumulative flux,
+        excluding file ending.
         """
-        return self.path_co() + self.filename_co()
+        return self.path_co_df() + self.filename_co()
 
-    def saved_wvl_array(self):
+    def delete_df_file(self, df_file):
         """
-        Only works if a wavelength array was indeed saved for this model in the specified 'subfolder'.
+        If it is indeed a file in the dF folder, delete the given file.
 
-        :return: saved wavelength array.
+        :param df_file:
+        :return:
         """
-        return np.load(self.full_path() + "_wvl.npy")
+        if self.full_path_df() in df_file:
+            os.remove(df_file)
+            print(df_file+" has been deleted.")
+        else:
+            print("WARNING: "+df_file+" has NOT been deleted, because it is not in the cumulative flux folder.")
+        return
+
+    def saved_wvl_array_df(self):
+        """
+        Wavelength array for cumulative flux calculation in the dF folder.
+
+        :return: the saved wavelength array in the dF folder.
+        """
+        return np.load(self.full_path_df() + "_wvl.npy")
+
+    def model_wvl_array(self):
+        """
+        Final model wavelength array as saved in the grid folder.
+
+        :return: the saved wavelength array in grid_folder.
+        """
+        return np.load(self.path_grid_folder() + "wvl_re.npy")
 
     def saved_intensity_conv_co(self):
         """
@@ -113,7 +149,9 @@ class Gridpoint:
 
         :return: the saved, disk convolved intensity of the CO gas.
         """
-        return np.load(self.full_path() + "_CO.npy")
+        return np.load(self.full_path_df() + "_CO.npy")
+
+    # TODO change the output of these functions to paths to use them for deleting files.
 
     def saved_intensity_conv_mix(self):
         """
@@ -122,7 +160,7 @@ class Gridpoint:
 
         :return: the saved, disk convolved intensity of dust and gas mix.
         """
-        return np.load(self.full_path() + "_mix.npy")
+        return np.load(self.full_path_df() + "_mix.npy")
 
     def saved_intensity_conv_dust(self):
         """
@@ -131,7 +169,7 @@ class Gridpoint:
 
         :return: the saved, disk convolved intensity of dust and gas mix.
         """
-        return np.load(self.full_path() + "_dust.npy")
+        return np.load(self.full_path_df() + "_dust.npy")
 
     def get_total_co_intensity(self):
         """
@@ -245,7 +283,7 @@ class Gridpoint:
         if flux is None:
             flux = self.calc_flux()
         if wvl is None:
-            wvl = self.saved_wvl_array()
+            wvl = self.saved_wvl_array_df()
         if wvl_indices is None:
             wvl_indices = np.arange(len(wvl))
         return np.trapz(flux[:, wvl_indices], x=wvl[wvl_indices])
@@ -263,7 +301,7 @@ class Gridpoint:
         if intensity is None:
             intensity = self.get_total_co_intensity()
         if wvl is None:
-            wvl = self.saved_wvl_array()
+            wvl = self.saved_wvl_array_df()
         if r is None:
             r = self.r_co
 
@@ -288,11 +326,11 @@ class Gridpoint:
 
         # Check if calculations have been made.
         try:
-            dF_disk, r_disk_AU = np.load(self.full_path() + cum_flux_extension + ".npy")
+            dF_disk, r_disk_AU = np.load(self.full_path_df() + cum_flux_extension + ".npy")
         # If not do the total calculation.
         except FileNotFoundError:
             dF_disk = self.calc_cumulative_flux()
             r_disk_AU = self.r_co / cfg.AU
-            np.save(self.full_path() + cum_flux_extension, [dF_disk, r_disk_AU])
+            np.save(self.full_path_df() + cum_flux_extension, [dF_disk, r_disk_AU])
 
         return dF_disk, r_disk_AU
