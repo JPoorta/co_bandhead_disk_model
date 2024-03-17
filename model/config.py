@@ -35,6 +35,7 @@ M_sun = 1.988475e+33  # solar mass in gr
 sampling = 2  # Shannon minimum sampling
 max_wvl = 5  # Maximum wavelength in micron - cut off used in co_bandhead
 min_dv_cm = 1. * 1.e5  # velocity resolution in cm/s for construction of frequency and velocity arrays
+jwst_nirspec_res = 2700  # NIRSPEC resolution from Boker et al 2023
 
 # Outer boundary temperature
 min_T_gas = 600  # Minimum gas temperature that defines outer boundary of the model.

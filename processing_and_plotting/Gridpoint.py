@@ -2,7 +2,7 @@ import numpy as np
 import os
 import model.config as cfg
 
-from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, create_radial_array
+from model.flat_disk_log_grid import create_t_gas_array, create_t_dust_array, create_radial_array, instrumental_profile
 
 
 class Gridpoint:
@@ -24,6 +24,7 @@ class Gridpoint:
                  test_value=None,
                  all_params=None,
                  inc_deg=None,
+                 instrument_profile=None
                  ):
 
         # define default attributes
@@ -41,6 +42,7 @@ class Gridpoint:
         self.test_param = test_param
         self.test_value = test_value
         self.inc_deg = inc_deg
+        self.ip_dx = instrument_profile
 
         if self.all_params is not None:
             self.dv0 = self.all_params["dv0"]
@@ -334,3 +336,62 @@ class Gridpoint:
             np.save(self.full_path_df() + cum_flux_extension, [dF_disk, r_disk_AU])
 
         return dF_disk, r_disk_AU
+
+    def read_output_per_inc(self, convolve=False, ip_dx=None):
+        """
+        Read the co_bandhead numpy file which stores the normalized bandheads per inclination.
+
+        :param convolve: (Bool) if True, convolve the models with instrumental profile.
+        :param ip_dx: (tuple of two arrays or None) if provided should be the instrument profile to convolve the fluxes
+         with. Note that even if convolve=True ip_dx need not be provided, it will default to local method.
+        :return: a dictionary with keys inclination and values the model spectra.
+        If there is only one inclination just return the flux array.
+        """
+        results = np.load(self.full_path_model_file())
+
+        model_per_inc_dict = {}
+        if convolve and ip_dx is None:
+            ip_dx = self.return_instrument_profile()
+
+        for j, i in enumerate(self.inc_deg):
+            if convolve:
+                flux = self.convolve_flux(flux=results[j, :], ip_dx=ip_dx)
+            else:
+                flux = results[j, :]
+
+            model_per_inc_dict[i] = flux
+
+        if len(self.inc_deg) == 1:
+            return model_per_inc_dict[self.inc_deg[0]]
+        else:
+            return model_per_inc_dict
+
+    def return_instrument_profile(self, res=None):
+        """
+        Return the instrument profile. If it was not passed as an attribute, it is calculated with class method that
+        uses the JWST NIRSPEC resolution in config and the saved wavelength array.
+
+        :param res: optional instrumental resolution.
+        :return: two arrays used for convolutions: ip (to convolve with) and dx (to multiply by).
+        """
+        if self.ip_dx is not None:
+            return self.ip_dx  # first try if the instrument profile is explicitly passed at initialisation of gp.
+        # If not calculate it.
+        if res is None:
+            res = cfg.jwst_nirspec_res
+        return instrumental_profile(self.model_wvl_array(), res)
+
+    def convolve_flux(self, flux, ip_dx=None):
+        """
+        Convolve flux with instrumental profile.
+
+        :param flux: model flux to convolve, should have same dimension as provided instrument profile or, if ip_dx is
+         not provided, as the saved model wavelength array.
+        :param ip_dx: optional instrument profile.
+        :return:
+        """
+        if ip_dx is None:  # If not passed to function define the profile from in-house method.
+            ip, dx = self.return_instrument_profile()
+        else:
+            ip, dx = ip_dx
+        return np.convolve(flux, ip, mode="same") * dx
