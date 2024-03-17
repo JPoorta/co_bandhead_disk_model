@@ -86,7 +86,7 @@ def get_default_params(star=None):
                    "ni": n_h_i,
                    "q": -1.5,
                    "t1": 800,
-                   "a": -11
+                   "a": -11 #TODO If the purpose here is to truly define the original defaults, t1 or a should be None.
                    }
 
     all_params = {"inc_deg": [inc],  # 10,20,30,40,50,60,70,80
@@ -174,6 +174,8 @@ Kurucz_dir = aux_files / "Castelli-Kurucz/"
 spectra_dir = aux_files / "best_fits_and_data"
 # Atomic data.
 species = "12C16O"
+# TODO MAIN FIG Make 'species' an input parameter to flat_disk_log_grid: with options 12CO, 13CO (with given abundance)
+#  or both. The atomic data related definitions can become functions of species.
 atomic_data = aux_files / ("hitran_table_" + species)
 partition_sums = aux_files / ("Q_" + species + ".npy")
 # State independent statistical weight factors g_i according to eq.22 in Simeckova 2006.

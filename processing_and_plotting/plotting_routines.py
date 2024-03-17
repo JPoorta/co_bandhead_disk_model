@@ -6,6 +6,7 @@ import model.sed_calculations as seds
 import processing_and_plotting.Gridpoint as Gridpoint
 from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
+
 label_dict = {"ri": r"$R_i$",
               "ti": r"$(T_{\rm ex})_i$",
               "p": r"$p$",
@@ -13,6 +14,7 @@ label_dict = {"ri": r"$R_i$",
               "q": r"$q$",
               "t1": r"$T_1$",
               "a": r"$a$",
+              "inc_deg": r"$i$",
               "tex": r"$T_{\rm ex}$",
               "R": r"$R$ (AU)"}
 
