@@ -49,6 +49,7 @@ def grid_for_main_figure_p4(star=None):
     all_params["maxmin"] = [5, -5]
     all_params["print_Rs"] = False
     all_params["save"] = "main_fig_p4"
+    all_params["save_reduced_flux"] = False
 
     return grid_params, all_params, test_param_dict
 

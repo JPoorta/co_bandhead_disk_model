@@ -388,7 +388,7 @@ def instrumental_profile(wvl, res, center_wvl=None):
 
 def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=100,
                    Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
-                   maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None):
+                   maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None, save_reduced_flux=True):
     """
     Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
@@ -444,6 +444,9 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
     :param dF: (None or str) if provided, the necessary arrays to calculate the cumulative flux are saved to the results
             folder of the relevant star in a folder starting with "dF". The string will be appended to this folder name.
             If an empty string: arrays are saved to dF. If None, nothing is saved.
+    :param save_reduced_flux: (bool) if True save flux cast on a reduced wavelength array adapted to X-shooter
+            observations (this was done to save space for large grids).
+            If False the original flux with model wavelength array will be saved.
     :return: the wavelength array and a 2D array containing the normalized fluxes for each inclination and
             the last gridpoint in grid.
 
@@ -504,7 +507,10 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
         # --------------------------------------------------------------
         if save is not None:
             folder = cfg.results_folder / st / save
-            np.save(folder / "wvl_re", wvl)
+            if save_reduced_flux:
+                np.save(folder / "wvl_re", obj_wvl_arr)
+            else:
+                np.save(folder / "wvl_re", wvl)
 
         # --------------------------------------------------------------
         # Get stellar parameters.
@@ -636,7 +642,10 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             # --------------------------------------------------------------
             # ITERATIONS OVER INCLINATION.
             # --------------------------------------------------------------
-            to_save = np.zeros((len(dv0_cm), len(inc), len(obj_wvl_arr)))
+            if save_reduced_flux:
+                to_save = np.zeros((len(dv0_cm), len(inc), len(obj_wvl_arr)))
+            else:
+                to_save = np.zeros((len(dv0_cm), len(inc), len(wvl)))
             all_in_norm = np.ones((len(dv0_cm), len(inc)), dtype=bool)
 
             for j, i in enumerate(inc):
@@ -710,9 +719,12 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 flux_norm = flux_tot / flux_cont_tot
 
                 for k in range(len(dv0_cm)):
-                    flux_norm_intp = np.interp(obj_wvl_arr, wvl, flux_norm[k])
-                    to_save[k, j, :] = flux_norm_intp
-                    flux_norm_max = np.max(flux_norm_intp)
+                    if save_reduced_flux:
+                        flux_norm_save = np.interp(obj_wvl_arr, wvl, flux_norm[k])
+                    else:
+                        flux_norm_save = flux_norm[k]
+                    to_save[k, j, :] = flux_norm_save
+                    flux_norm_max = np.max(flux_norm_save)
                     all_in_norm[k, j] = maxmin[0] > flux_norm_max > maxmin[1]
 
                 if convolve:
@@ -733,7 +745,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                         (end - start) % 60) + " sec"
                     print(runtime)
 
-                    return wvl, flux_tot_ext, flux_norm_ext, flux_norm_intp, obs_flux, obs_flux_norm
+                    return wvl, flux_tot_ext, flux_norm_ext, flux_norm_save, obs_flux, obs_flux_norm
 
             if save is not None:
 
