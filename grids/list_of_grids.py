@@ -32,7 +32,7 @@ def grid_for_main_figure_p4(star=None):
     # Set the parameters to be tested.
     test_param_dict = {"t1": [600, 700, 800, 900],
                        "ti": [2000, 3000, 4000, 5000],
-                       "ni": [5e23, 3.9e24, 8.3e25, 6.5e26, 5e27],
+                       "ni": [5e23, 3.9e24, 3e25, 6.5e26, 5e27],
                        "q": [1, -0.5, -1, -1.5],
                        "ri": [0.261, 0.5, 1],
                        "inc_deg": [20, 30, 40, 60, 80]
