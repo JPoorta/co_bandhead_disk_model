@@ -33,7 +33,7 @@ M_sun = 1.988475e+33  # solar mass in gr
 
 # Various
 sampling = 2  # Shannon minimum sampling
-max_wvl = 5  # Maximum wavelength in micron - cut off used in co_bandhead
+max_wvl = 5.1  # Maximum wavelength in micron - cut off used in co_bandhead
 min_dv_cm = 1. * 1.e5  # velocity resolution in cm/s for construction of frequency and velocity arrays
 jwst_nirspec_res = 2700  # NIRSPEC resolution from Boker et al 2023
 
@@ -273,17 +273,16 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None, t1=Non
     if t1 is None or a is None:
         base_str = str(np.int(ti)) + '_' + '{0:g}'.format(p) + '_' \
                    + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-                   + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 1))
+                   + '{0:.1f}'.format(q) + '_' + str(np.around(float(ri_r), 1))
     else:
         base_str = str(np.int(ti)) + '_' + str(int(t1)) + '_' + str(int(a)) + '_' \
                + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-               + str(np.around(q, 1)) + '_' + str(np.around(ri_r, 2))
+               + '{0:.1f}'.format(q) + '_' + str(np.around(float(ri_r), 2))
     full_name = base_str
     if dv is not None:
         full_name = full_name + '_dv' + '{0:g}'.format(dv)
     if extra_param is not None:
         full_name = full_name + '{1:g}'.format(extra_param)
-
     return full_name
 
 
