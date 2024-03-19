@@ -199,7 +199,7 @@ def create_t_dust_array(r_co, co_only, ti_d, ri_d, p_d):
 
 
 def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, prof_dict, dust, dust_params=None,
-                plot=False):
+                plot=False, species="12C16O"):
     """
     Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
     dust continuum.
@@ -241,8 +241,9 @@ def co_bandhead(t_gas, NCO, wave, A_einstein, jlower, jupper, freq_trans, Elow, 
     # -----------------------------------------------------------------------------
     # Reading of the partition sums and calculation fractional level populations in LTE
     # -----------------------------------------------------------------------------
-    Q = np.interp(t_gas, cfg.Q_T['T'], cfg.Q_T['Q'])
-    g_i = cfg.g_i_dict.get(cfg.species)  # state independent statistical weight factor, see config
+    q_t = cfg.partition_sums(species)
+    Q = np.interp(t_gas, q_t['T'], q_t['Q'])
+    g_i = cfg.g_i_dict.get(species)  # state independent statistical weight factor, see config
     x = g_i * (2 * jlower[None, :] + 1) / Q[:, None] * np.exp(-Elow[None, :] / t_gas[:, None])
 
     # c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.
@@ -386,13 +387,14 @@ def instrumental_profile(wvl, res, center_wvl=None):
     return ip, dx
 
 
-def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=100,
-                   Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None,
-                   maxmin=(1.3, 1.02), lisa_it=None, saved_list=None, dF=None, save_reduced_flux=True):
+def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species, num_CO=100, Rmin_in=None, Rmax_in=None,
+                   print_Rs=False, convolve=False, save=None, maxmin=(1.3, 1.02), lisa_it=None, saved_list=None,
+                   dF=None, save_reduced_flux=True):
     """
     Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
 
+    :param species: "12C16O" or "13C16O"
     :param grid: grid with 5 variables, created as follows by np.meshgrid:
 
         .. code-block:: python
@@ -460,17 +462,19 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
     # --------------------------------------------------------------
     # Select relevant levels and sort according to frequency (from high to low)
     # --------------------------------------------------------------
+    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = cfg.co_data(species)
 
     max_freq = 1.e4 / cfg.max_wvl  # micron to cm^-1
-    mask = np.zeros(len(cfg.freq_tr), dtype=bool)
+    mask = np.zeros(len(freq_tr), dtype=bool)
 
     for vu, vl in zip(vupper, vlower):
         mask += np.logical_and.reduce(
-            (cfg.vhigh == vu, cfg.vlow == vl, cfg.jh <= nJ, cfg.jl_all <= nJ, cfg.freq_tr >= max_freq))
+            (vhigh == vu, vlow == vl, jh <= nJ, jl_all <= nJ, freq_tr >= max_freq))
 
-    ind = np.argsort((cfg.freq_tr[mask]))
+    ind = np.argsort((freq_tr[mask]))
+
     vl, jlower, vh, jupper, A_einstein, Elow, freq_trans = \
-        [(a[mask][ind]) for a in [cfg.vlow, cfg.jl_all, cfg.vhigh, cfg.jh, cfg.A, cfg.El_all, cfg.freq_tr]]
+        [(a[mask][ind]) for a in [vlow, jl_all, vhigh, jh, A, El_all, freq_tr]]
 
     # ---------------------------------------------------------
     # Unit conversions
@@ -605,16 +609,16 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
             T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1[()], a[()], p, p_d)
             T_dust = create_t_dust_array(R_CO, CO_only, ti_d, ri_d, p_d)
 
-            NCO = cfg.nco(R_CO, ni, ri, q)
+            NCO = cfg.nco(R_CO, ni, ri, q, species=species)
             dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[~CO_only], beta=beta, rhalf=r_turn)
-            NH = cfg.nco(R_CO[~CO_only], ni_d, ri_d, q_d) * cfg.H_CO.get(cfg.species) \
+            NH = cfg.nco(R_CO[~CO_only], ni_d, ri_d, q_d, species=species) * cfg.H_CO.get(species) \
                  * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
 
             # Opacities and source function where there is only gas.
             if gas_only_exist:
                 S_CO, tau_CO = co_bandhead(t_gas=T_gas[CO_only], NCO=NCO[CO_only], wave=wvl,
                                            A_einstein=A_einstein, jlower=jlower, jupper=jupper,
-                                           freq_trans=freq_trans, Elow=Elow,
+                                           freq_trans=freq_trans, Elow=Elow, species=species,
                                            prof_dict=profile_dict, dust=False, plot=False)
                 R_CO_only = R_CO[CO_only]
 
@@ -634,7 +638,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                 # Continuum flux was calculated earlier.
                 S_CO, tau_CO = co_bandhead(t_gas=T_gas, NCO=NCO, wave=wvl, A_einstein=A_einstein,
                                            jlower=jlower, jupper=jupper, freq_trans=freq_trans, Elow=Elow,
-                                           prof_dict=profile_dict, dust=False)
+                                           prof_dict=profile_dict, dust=False, species=species)
 
                 R_CO_only = R_CO
                 gas_only_exist = True
@@ -685,7 +689,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, num_CO=1
                     S_mix, tau_mix, tau_cont, BB_dust = co_bandhead(t_gas=T_gas[~CO_only], NCO=NCO[~CO_only], wave=wvl,
                                                                     A_einstein=A_einstein, jlower=jlower, jupper=jupper,
                                                                     freq_trans=freq_trans, Elow=Elow,
-                                                                    prof_dict=profile_dict,
+                                                                    prof_dict=profile_dict, species=species,
                                                                     dust=True, dust_params=[NH, T_dust])
 
                     # ---------------------------------------------------------

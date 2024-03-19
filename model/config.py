@@ -107,7 +107,8 @@ def get_default_params(star=None):
                   "lisa_it": None,
                   "saved_list": None,
                   "dF": None,
-                  "save_reduced_flux": True
+                  "save_reduced_flux": True,
+                  "species":"12C16O"
                   }
 
     return grid_params, all_params
@@ -173,11 +174,56 @@ Kurucz_dir = aux_files / "Castelli-Kurucz/"
 # folder for NIR-spectra
 spectra_dir = aux_files / "best_fits_and_data"
 # Atomic data.
-species = "12C16O"
-# TODO MAIN FIG Make 'species' an input parameter to flat_disk_log_grid: with options 12CO, 13CO (with given abundance)
+#TODO MAIN FIG Make 'species' an input parameter to flat_disk_log_grid: with options 12CO, 13CO (with given abundance)
 #  or both. The atomic data related definitions can become functions of species.
-atomic_data = aux_files / ("hitran_table_" + species)
-partition_sums = aux_files / ("Q_" + species + ".npy")
+
+
+def co_data(species):
+    """
+    # Molecular data
+    #  ------------------------------------------
+    # From https://hitran.org/hitemp/
+    # G. Li, I.E. Gordon et al. 2015, The Astrophysical Journal Supplement Series 21615.
+    #
+    # Column    Units   Label     Explanations
+    #
+    #   0        ---     vlow        Vibrational quantum number of the lower level
+    #   1        ---     jl_all      Rotational quantum number of the lower level
+    #   2        ---     vhigh       Vibrational quantum number of the upper level
+    #   3        ---     jh        Rotational quantum number of the upper level
+    #   4        s-1     A         Einstein A-coefficient
+    #   5        cm-1    El_all     Energies of the lower level of the transitions
+    #   6        cm-1    freq_tr    Frequency of the transition
+    #
+    #  -----------------------------------------------------
+
+    :param species:
+    :return:
+    """
+
+    co_data = aux_files / ("hitran_table_" + species)
+    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = np.genfromtxt(co_data).T
+    El_all *= cm_K
+
+    return vlow, jl_all, vhigh, jh, A, El_all, freq_tr
+
+
+def partition_sums(species):
+    """
+    Precalculated partition sums (cross-checked with the values provided by Li, Gordon et al. 2015):
+    >> T_gas = np.arange(1,9001,0.1)
+    >> El_all, uni_indices = np.unique(cfg.El_all, return_index=True)
+    >> Q = np.sum((2 * cfg.jl_all[uni_indices][:, None] + 1) * np.exp(-El_all[:, None] / T_gas[None, :]), axis=0)
+    >> to_save = np.core.records.fromarrays(np.array([T_gas,Q]), names='T, Q', formats='f4, f4')
+    >> np.save(cfg.aux_files + "Q_12C16O",to_save)
+
+    :param species:
+    :return: Q_T
+    """
+    partition_sums = aux_files / ("Q_" + species + ".npy")
+    return np.load(partition_sums)
+
+
 # State independent statistical weight factors g_i according to eq.22 in Simeckova 2006.
 # The statistical weights (2*J+1) should be multiplied by this factor.
 g_i_dict = {"12C16O": 1, "13C16O": 2}
@@ -285,34 +331,6 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None, t1=Non
         full_name = full_name + '{1:g}'.format(extra_param)
     return full_name
 
-
-# Molecular data
-#  ------------------------------------------
-# From https://hitran.org/hitemp/
-# G. Li, I.E. Gordon et al. 2015, The Astrophysical Journal Supplement Series 21615.
-#
-# Column    Units   Label     Explanations
-#
-#   0        ---     vlow        Vibrational quantum number of the lower level
-#   1        ---     jl_all      Rotational quantum number of the lower level
-#   2        ---     vhigh       Vibrational quantum number of the upper level
-#   3        ---     jh        Rotational quantum number of the upper level
-#   4        s-1     A         Einstein A-coefficient
-#   5        cm-1    El_all     Energies of the lower level of the transitions
-#   6        cm-1    freq_tr    Frequency of the transition
-#
-#  -----------------------------------------------------
-
-vlow, jl_all, vhigh, jh, A, El_all, freq_tr = np.genfromtxt(atomic_data).T
-El_all *= cm_K
-
-# Precalculated partition sums (cross-checked with the values provided by Li, Gordon et al. 2015):
-# >>> T_gas = np.arange(1,9001,0.1)
-# >>> El_all, uni_indices = np.unique(cfg.El_all, return_index=True)
-# >>> Q = np.sum((2 * cfg.jl_all[uni_indices][:, None] + 1) * np.exp(-El_all[:, None] / T_gas[None, :]), axis=0)
-# >>> to_save = np.core.records.fromarrays(np.array([T_gas,Q]), names='T, Q', formats='f4, f4')
-# >>> np.save(cfg.aux_files + "Q_12C16O",to_save)
-Q_T = np.load(partition_sums)
 
 # Dust data
 
@@ -601,7 +619,7 @@ def t_simple_power_law(r, ti, ri, p=-0.5):
     return ti * (r / ri) ** p
 
 
-def nco(r, ni, ri, q):
+def nco(r, ni, ri, q, species):
     """
     The CO surface density powerlaw (in cm^-2).
 
@@ -609,6 +627,7 @@ def nco(r, ni, ri, q):
     :param ni: Gas (H2) surface density at initial radius (in cm^-2).
     :param ri: Initial radius in cm
     :param q: Power law exponent for gas density
+    :param species: (str) co isotopogue to use "12C16O" or "13C16O".
     :return: The CO surface density in cm^-2.
     """
     return ni * (r / ri) ** q / H_CO[species]

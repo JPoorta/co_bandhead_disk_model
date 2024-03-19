@@ -77,7 +77,8 @@ def calculate_grid(thread_no):
             pass
 
     fld.run_grid_log_r(grid=grid, inc_deg=inc_deg, stars=stars, dv0=dv0, vupper=vupper, vlower=vlower, nJ=nJ,
-                       dust=dust, sed_best_fit=sed_best_fit, save=grid_name, lisa_it=thread_no, saved_list=saved_list)
+                       dust=dust, sed_best_fit=sed_best_fit, save=grid_name, lisa_it=thread_no, saved_list=saved_list,
+                       species="12C16O")
 
     return
 

@@ -61,7 +61,7 @@ def plot_obs_spectrum(star, fig_ax=None):
     return
 
 
-def plot_275_checks(wvl, fig_ax=None, no_dust=False, rmax_in=False):
+def plot_275_checks(fig_ax=None, no_dust=False, rmax_in=False):
     """
     Plots the original best fit model for B275 after ALMA dust SED implementation.
 
@@ -75,7 +75,7 @@ def plot_275_checks(wvl, fig_ax=None, no_dust=False, rmax_in=False):
     now run upto 60 AU instead of ~0.67 AU.
     :return:
     """
-
+    wvl = np.load(cfg.spectra_dir / "wvl.npy")
     alma_dust = np.load(cfg.spectra_dir / "B275_alma_dust.npy")
     plot_on_divided_axes(wvl, alma_dust, fig_ax=fig_ax, **{"label": r"original $T_{\rm ex}$", "zorder": -1})
     if no_dust:

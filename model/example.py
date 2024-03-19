@@ -87,8 +87,11 @@ def run_test(test_param, test_param_array, grid_params, all_params, figax, quick
 
         pltr.plot_t_structure_gas(gp)
 
-        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=pltr.label_dict[test_param]
-                                                                             + " = " + str(value),
+        if test_param in pltr.label_dict.keys():
+            label_base = pltr.label_dict[test_param]
+        else:
+            label_base = test_param
+        pltr.quick_plot_norm_convolved_flux(star, wvl, conv_flux_norm, label=label_base + " = " + str(value),
                                             fig_ax=(fig, ax))
         if quick_plots:
             pltr.quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, continuum_flux,
@@ -111,7 +114,7 @@ def finish_plots(gp, star, wvl, continuum_flux, figax, plot_B275_checks=False, q
     plt.figure(3)
     pltr.plot_obs_spectrum(star, fig_ax=(fig, ax))
     if plot_B275_checks:
-        pltr.plot_275_checks(wvl, fig_ax=(fig, ax), rmax_in=False)
+        pltr.plot_275_checks(fig_ax=(fig, ax), rmax_in=False)
 
     return
 

@@ -28,7 +28,7 @@ def plot_multiple_ro_vib_e_levels(vib_trans_list, plot_spec_dict):
     return
 
 
-def plot_ro_vib_energy_levels(vu, vl, plot_spec_dict):
+def plot_ro_vib_energy_levels(vu, vl, plot_spec_dict, species="12C16O"):
     """
 
     :param vu:
@@ -36,8 +36,8 @@ def plot_ro_vib_energy_levels(vu, vl, plot_spec_dict):
     :param plot_spec_dict:
     :return:
     """
-    mask, ind = create_mask_for_vib_level(vu, vl)
-    vl, jlower, vh, jupper, a_einstein, elow, freq_trans = apply_mask_to_transitions(mask, ind)
+    mask, ind = create_mask_for_vib_level(vu, vl, species)
+    vl, jlower, vh, jupper, a_einstein, elow, freq_trans = apply_mask_to_transitions(mask, ind, species)
     plot_rot_energy_levels_pqr(freq_trans, jlower, jupper, plot_spec_dict)
     return
 
@@ -64,33 +64,35 @@ def plot_rot_energy_levels_pqr(freq_trans, jlower, jupper, plot_spec_dict):
     return
 
 
-def create_mask_for_vib_level(vu, vl):
+def create_mask_for_vib_level(vu, vl, species):
     """
     Create sorted mask to apply to transitions
 
     :param vu:
     :param vl:
+    :param species: (str) "12C16O" or "13C16O"
     :return:
     """
-
-    mask = np.zeros(len(cfg.freq_tr), dtype=bool)
-    mask += np.logical_and(cfg.vhigh == vu, cfg.vlow == vl)
-    ind = np.argsort((cfg.freq_tr[mask]))
+    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = cfg.co_data(species)
+    mask = np.zeros(len(freq_tr), dtype=bool)
+    mask += np.logical_and(vhigh == vu, vlow == vl)
+    ind = np.argsort((freq_tr[mask]))
 
     return mask, ind
 
 
-def apply_mask_to_transitions(mask, ind):
+def apply_mask_to_transitions(mask, ind, species):
     """
     From the transition arrays in config make a selection using mask, sort it according the frequency using ind.
 
     :param mask:
     :param ind:
+    :param species: "12C16O" or "13C16O"
     :return:
     """
-
+    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = cfg.co_data(species)
     vl, jlower, vh, jupper, a_einstein, elow, freq_trans = \
-        [(a[mask][ind]) for a in [cfg.vlow, cfg.jl_all, cfg.vhigh, cfg.jh, cfg.A, cfg.El_all, cfg.freq_tr]]
+        [(a[mask][ind]) for a in [vlow, jl_all, vhigh, jh, A, El_all, freq_tr]]
     return vl, jlower, vh, jupper, a_einstein, elow, freq_trans
 
 
