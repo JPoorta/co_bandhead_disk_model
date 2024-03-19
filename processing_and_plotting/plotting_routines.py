@@ -8,15 +8,17 @@ from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
 
 label_dict = {"ri": r"$R_i$",
-              "ti": r"$(T_{\rm ex})_i$",
+              "ti": r"$(T_i)_{\rm ex}$",
               "p": r"$p$",
-              "ni": r"$(N_{\rm H_2})_i$",
+              "ni": r"$(N_i)_{\rm H_2}$",
               "q": r"$q$",
               "t1": r"$T_1$",
               "a": r"$a$",
               "inc_deg": r"$i$",
               "tex": r"$T_{\rm ex}$",
               "R": r"$R$ (AU)"}
+
+#TODO add unit dict
 
 
 def plot_star(star):
@@ -176,7 +178,7 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
         axi.set_xlabel(r"$\lambda (\mu$m)")
 
     ax[0].set_xlim(1.55, 1.70)  # 1.75
-    ax[1].set_xlim(2.265, 2.6)  # 2.9
+    ax[1].set_xlim(2.285, 2.6)  # 2.9
     ax[2].set_xlim(4.28, 5.)
     ax[0].set_ylim(0.95, 1.5)
 
@@ -187,7 +189,7 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     ax[2].spines['left'].set_visible(False)
     ax[2].tick_params(labelright=True, right=True, left=False, labelleft=False)
 
-    ax[0].legend(loc='upper left',)   #  bbox_to_anchor=(-0.05, 1)
+    ax[1].legend(loc='upper right',)   #  bbox_to_anchor=(-0.05, 1)
 
     return fig, ax
 
@@ -203,7 +205,7 @@ def plot_t_structure_gas(gp, ):
     t_gas = gp.obtain_model_t_gas()
 
     plt.figure(5, figsize=(5, 4))
-    label_base = label_dict["ti"] + "=" + str(gp.ti) + " " + label_dict["ri"] + "=" + str(gp.ri_au) + " "
+    label_base = label_dict["ti"] + "=" + str(gp.ti) + " " + label_dict["ri"] + "=" + str(gp.ri) + " "
     if None in [gp.t1, gp.a]:
         label = label_base + label_dict["p"] + "=" + str(gp.p)
     else:
