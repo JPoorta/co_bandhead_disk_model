@@ -46,11 +46,13 @@ def save_run_variation_around_one_model(grid=None):
 
     for test_param, test_param_array in test_param_dict.items():
         grid_params_use = grid_params.copy()
+        all_params_use = all_params.copy()
         if test_param in grid_params.keys():
             grid_params_use[test_param] = test_param_array
+        elif test_param in all_params.keys():
+            all_params_use[test_param] = test_param_array
 
-        # If it is one of the parameters which take an iterable as input, it is automatically iterated over.
         model_grid = ex.make_grid(**grid_params_use)
-        fld.run_grid_log_r(model_grid, **all_params)
+        fld.run_grid_log_r(model_grid, **all_params_use)
 
     return
