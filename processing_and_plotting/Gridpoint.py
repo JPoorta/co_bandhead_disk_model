@@ -30,7 +30,7 @@ class Gridpoint:
         # define default attributes
         self.star = star
         self.dv0 = dv0
-        self.ri_au = ri
+        self.ri = ri
         self.ri_cm = ri * cfg.AU
         self.q = q
         self.ni = ni
@@ -73,7 +73,7 @@ class Gridpoint:
         :return: The concatenated strings of the gridpoint defining parameters.
         """
         try:
-            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri_au, t1=self.t1, a=self.a,
+            return cfg.filename_co_grid_point(self.ti, self.p, self.ni, self.q, self.ri, t1=self.t1, a=self.a,
                                               dv=self.dv0[0])
 
         except TypeError:
@@ -212,7 +212,7 @@ class Gridpoint:
 
         # Refer to function in the model to get the output array.
         rmax, rmin, ri, ri_d, r_co, co_only = \
-            create_radial_array(self.star, self.ri_au, rmax_in, rmin_in, ri_d_au, r_out_au, self.ti, num_co)
+            create_radial_array(self.star, self.ri, rmax_in, rmin_in, ri_d_au, r_out_au, self.ti, num_co)
 
         return r_co, co_only
 
