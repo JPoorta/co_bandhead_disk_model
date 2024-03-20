@@ -4,6 +4,7 @@ docstrings and in-code comments.
 """
 
 from time import time
+import os
 
 import numpy as np
 from scipy.integrate import fixed_quad
@@ -514,6 +515,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species,
         # --------------------------------------------------------------
         if save is not None:
             folder = cfg.results_folder / st / save
+            os.makedirs(folder, exist_ok=True)
             if save_reduced_flux:
                 np.save(folder / "wvl_re", obj_wvl_arr)
             else:
