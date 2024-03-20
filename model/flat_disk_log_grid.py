@@ -387,14 +387,17 @@ def instrumental_profile(wvl, res, center_wvl=None):
     return ip, dx
 
 
-def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species, num_CO=100, Rmin_in=None, Rmax_in=None,
-                   print_Rs=False, convolve=False, save=None, maxmin=(1.3, 1.02), lisa_it=None, saved_list=None,
-                   dF=None, save_reduced_flux=True):
+def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species, iso_ratio, num_CO=100,
+                   Rmin_in=None, Rmax_in=None, print_Rs=False, convolve=False, save=None, maxmin=(1.3, 1.02),
+                   lisa_it=None, saved_list=None, dF=None, save_reduced_flux=True):
     """
     Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
     For a test run use scalar values in the grid and for dv0, and set convolve = True.
 
-    :param species: "12C16O" or "13C16O"
+    :param iso_ratio: (int or None) the relative N12C16O/'species' abundance. If None, 12C16O is assumed to be the
+    only molecule. If passed with "12C16O", the total NCO/NH abundance is assumed to be shared with another
+    isotopologue (so far only 13CO), i.e. the 12C16O abundance is then reduced by the amount of the other isotope.
+    :param species:(str) isotopologue name; so far only "12C16O" or "13C16O".
     :param grid: grid with 5 variables, created as follows by np.meshgrid:
 
         .. code-block:: python
@@ -609,10 +612,9 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species,
             T_gas = create_t_gas_array(R_CO, CO_only, ti, ri, t1[()], a[()], p, p_d)
             T_dust = create_t_dust_array(R_CO, CO_only, ti_d, ri_d, p_d)
 
-            NCO = cfg.nco(R_CO, ni, ri, q, species=species)
+            NCO = cfg.n_co(nh=cfg.nh(R_CO, ni, ri, q,), species=species, n12co_species_ratio=iso_ratio)
             dust_to_gas = seds.logistic_func_gas_dust_ratio(R_CO[~CO_only], beta=beta, rhalf=r_turn)
-            NH = cfg.nco(R_CO[~CO_only], ni_d, ri_d, q_d, species=species) * cfg.H_CO.get(species) \
-                 * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
+            NH = cfg.nh(R_CO[~CO_only], ni_d, ri_d, q_d) * dust_to_gas * 2 * cfg.mass_proton  # dust mass column density
 
             # Opacities and source function where there is only gas.
             if gas_only_exist:

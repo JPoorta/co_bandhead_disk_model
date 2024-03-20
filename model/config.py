@@ -53,7 +53,7 @@ gas_to_solid = 100  # canonical gas to dust ratio
 
 # Stellar parameters and extinction
 # [stellar mass from track in M_sun,T_eff(K),log_g,stellar radius in R_sun, Resolution, SNR, R_v,A_v, RV(in km/s)]
-stel_parameter_dict = {'B275': [7.2, 12750, 3.44, 9.5,  11300., 100, 3.8, 7.41, -11.2],
+stel_parameter_dict = {'B275': [7.2, 12750, 3.44, 9.5, 11300., 100, 3.8, 7.41, -11.2],
                        'B331': [10.0, 13000, 4.13, 18.7, 11300, 100, 4.6, 13.3, 13.9],
                        'B243': [4.2, 11900, 3.78, 4.6, 11300., 100, 4.7, 7.92, 20.2],
                        'B268': [4.5, 11300, 3.78, 5.6, 11300., 100, 4.6, 7.51, 4.3],
@@ -86,7 +86,8 @@ def get_default_params(star=None):
                    "ni": n_h_i,
                    "q": -1.5,
                    "t1": 800,
-                   "a": -11 #TODO If the purpose here is to truly define the original defaults, t1 or a should be None.
+                   "a": -11
+                   # TODO If the purpose here is to truly define the original defaults, t1 or a should be None.
                    }
 
     all_params = {"inc_deg": [inc],  # 10,20,30,40,50,60,70,80
@@ -108,7 +109,8 @@ def get_default_params(star=None):
                   "saved_list": None,
                   "dF": None,
                   "save_reduced_flux": True,
-                  "species":"12C16O"
+                  "species": "12C16O",
+                  "iso_ratio": None
                   }
 
     return grid_params, all_params
@@ -173,9 +175,9 @@ plot_folder = project_folder / "plots/"
 Kurucz_dir = aux_files / "Castelli-Kurucz/"
 # folder for NIR-spectra
 spectra_dir = aux_files / "best_fits_and_data"
+
+
 # Atomic data.
-#TODO MAIN FIG Make 'species' an input parameter to flat_disk_log_grid: with options 12CO, 13CO (with given abundance)
-#  or both. The atomic data related definitions can become functions of species.
 
 
 def co_data(species):
@@ -201,8 +203,8 @@ def co_data(species):
     :return:
     """
 
-    co_data = aux_files / ("hitran_table_" + species)
-    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = np.genfromtxt(co_data).T
+    data = aux_files / ("hitran_table_" + species)
+    vlow, jl_all, vhigh, jh, A, El_all, freq_tr = np.genfromtxt(data).T
     El_all *= cm_K
 
     return vlow, jl_all, vhigh, jh, A, El_all, freq_tr
@@ -220,8 +222,8 @@ def partition_sums(species):
     :param species:
     :return: Q_T
     """
-    partition_sums = aux_files / ("Q_" + species + ".npy")
-    return np.load(partition_sums)
+    partition_sums_f = aux_files / ("Q_" + species + ".npy")
+    return np.load(partition_sums_f)
 
 
 # State independent statistical weight factors g_i according to eq.22 in Simeckova 2006.
@@ -230,7 +232,39 @@ g_i_dict = {"12C16O": 1, "13C16O": 2}
 # Abundance H2/12CO. Elemental abundance of 12C/13C is about 69 (source: R.Visser 2009)
 # We use the hitran value for the relative abundance N(12CO)/N(13CO): 89 (https://hitran.org/docs/iso-meta/)
 N12CO_N13CO = 89
-H_CO = {"12C16O": 1.e4, "13C16O": 1.e4 * N12CO_N13CO}
+NCO_NH = 1e-4
+
+
+def n_co(nh, species, n12co_species_ratio=None, abundance=None):
+    """
+    Given the H_2 particle column density, an isotopologue and an abundance ratio, return the CO particle column density
+    for that isotopologue. If no ratio is provided for 12C16O, it is assumed to be the only present species. If a ratio
+    is provided with 12C16O its abundance is reduced such that the total CO abundance (12C16O+isotopologue(s)) is given
+    by 'nh'*'abundance'.
+
+    :param nh: H_2 particle column density in cm^-2.
+    :param species: (str) the CO isotopologue. So far only "12C16O" and "13C16O" are implemented.
+    :param n12co_species_ratio: (int) the 12C16O/isotopologue ratio for the molecule passed in species. If a value is
+    passed for 12C16O, another species is assumed to be present next to 12C16O.
+    :param abundance: total abundance for the CO molecule in all its forms relative to H_2. (Default: 1e-4)
+    :return: CO particle column density in cm^-2 for given species of CO.
+    """
+    if abundance is None:
+        abundance = NCO_NH
+    if species == "12C16O":
+        if n12co_species_ratio is None:
+            return nh * abundance
+        else:
+            return nh * abundance / (n12co_species_ratio + 1) * n12co_species_ratio
+    elif species == "13C16O":
+        if n12co_species_ratio is None:
+            n12co_species_ratio = N12CO_N13CO
+        return nh * abundance / (n12co_species_ratio + 1)
+    else:
+        print("\"species\" is not valid. Please pass an implemented isotopologue: 12C16O or 13C16O.")
+        return
+
+
 dust_data = aux_files / 'eps_Sil'
 dust_data_alma = aux_files / "dust_opacities_ossenkopf_1994.dat"
 ice_dict = {0: ["no ice mantle", '-'], 1: ["thick ice mantle", '..'],
@@ -322,8 +356,8 @@ def filename_co_grid_point(ti, p, ni, q, ri_r, dv=None, extra_param=None, t1=Non
                    + '{0:.1f}'.format(q) + '_' + str(np.around(float(ri_r), 1))
     else:
         base_str = str(np.int(ti)) + '_' + str(int(t1)) + '_' + str(int(a)) + '_' \
-               + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
-               + '{0:.1f}'.format(q) + '_' + str(np.around(float(ri_r), 2))
+                   + str(np.format_float_scientific(int(ni), precision=2, exp_digits=2, trim='-')) + '_' \
+                   + '{0:.1f}'.format(q) + '_' + str(np.around(float(ri_r), 2))
     full_name = base_str
     if dv is not None:
         full_name = full_name + '_dv' + '{0:g}'.format(dv)
@@ -602,7 +636,7 @@ def exp_t(r, t0, r0, t1, a):
     :param a: the decay rate, typically high to get a good fit for our objects.
     :return: unit K
     """
-    return t1 + (t0 - t1) * np.exp(a * (r/AU - r0/AU))
+    return t1 + (t0 - t1) * np.exp(a * (r / AU - r0 / AU))
 
 
 def t_simple_power_law(r, ti, ri, p=-0.5):
@@ -619,18 +653,17 @@ def t_simple_power_law(r, ti, ri, p=-0.5):
     return ti * (r / ri) ** p
 
 
-def nco(r, ni, ri, q, species):
+def nh(r, ni, ri, q):
     """
-    The CO surface density powerlaw (in cm^-2).
+    The H_2 surface density powerlaw (in cm^-2).
 
     :param r: radius in cm
     :param ni: Gas (H2) surface density at initial radius (in cm^-2).
     :param ri: Initial radius in cm
     :param q: Power law exponent for gas density
-    :param species: (str) co isotopogue to use "12C16O" or "13C16O".
-    :return: The CO surface density in cm^-2.
+    :return: The H_2 surface density in cm^-2.
     """
-    return ni * (r / ri) ** q / H_CO[species]
+    return ni * (r / ri) ** q
 
 
 def stellar_cont(star, wc):
