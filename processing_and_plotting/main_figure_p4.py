@@ -7,8 +7,8 @@ import grids.list_of_grids as grids
 import processing_and_plotting.Gridpoint as Gridpoint
 
 
-#TODO add 13CO, split figure in two 4, 3, with 13CO in the 3 plot, paste in thesis intro to see what it looks like
-#TODO make figure with T extremes to justify chosen T1 range.
+# TODO add 13CO, split figure in two 4, 3, with 13CO in the 3 plot, paste in thesis intro to see what it looks like
+# TODO make figure with T extremes to justify chosen T1 range.
 
 def make_fig():
     create_fig_and_plot()
@@ -94,15 +94,18 @@ def model_fluxes_for_test_param(test_param, test_array, grid_params, all_params,
         all_params_use["inc_deg"] = test_array
         gp = Gridpoint.Gridpoint(**grid_params, all_params=all_params_use)
         model_fluxes = gp.read_output_per_inc(convolve=True, ip_dx=ip_dx)
+        model_names = {key: gp.filename_co() for key in test_array}
     else:
         grid_params_use = grid_params.copy()
         model_fluxes = {}
+        model_names = {}
         for value in test_array:
             grid_params_use[test_param] = value
             gp = Gridpoint.Gridpoint(**grid_params_use, all_params=all_params)
             model_fluxes[value] = gp.read_output_per_inc(convolve=True, ip_dx=ip_dx)
+            model_names[value] = gp.filename_co()
 
-    return model_fluxes
+    return model_fluxes, model_names
 
 
 def create_fig_and_plot():
@@ -117,7 +120,7 @@ def create_fig_and_plot():
 
     for index, param in param_seq_dict_t_new().items():
 
-        model_fluxes = model_fluxes_for_test_param(param, test_param_dict[param], grid_params, all_params, ip_dx)
+        model_fluxes = model_fluxes_for_test_param(param, test_param_dict[param], grid_params, all_params, ip_dx)[0]
 
         for value in test_param_dict[param]:
 
