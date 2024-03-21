@@ -33,7 +33,7 @@ M_sun = 1.988475e+33  # solar mass in gr
 
 # Various
 sampling = 2  # Shannon minimum sampling
-max_wvl = 5.1  # Maximum wavelength in micron - cut off used in co_bandhead
+max_wvl = 5.4  # Maximum wavelength in micron - cut off used in co_bandhead
 min_dv_cm = 1. * 1.e5  # velocity resolution in cm/s for construction of frequency and velocity arrays
 jwst_nirspec_res = 2700  # NIRSPEC resolution from Boker et al 2023
 
