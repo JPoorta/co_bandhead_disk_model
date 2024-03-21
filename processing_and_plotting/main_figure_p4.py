@@ -33,10 +33,10 @@ def legend_title_dict():
 
 
 def legend_def():
-    return dict(loc='upper right', bbox_to_anchor=(1.09, 1.04), fontsize=8.5, title_fontsize=9)
+    return dict(loc='upper right', bbox_to_anchor=(1.05, 1.0), fontsize=9.3, title_fontsize=9.6)
 
 
-def create_figure(plot_count, ratios=None):
+def create_figure(plot_count, ratios=None, figsize=None, thirteen_co=True, **grid_spec_kw):
     """
     Create the figure ax object
 
@@ -49,8 +49,10 @@ def create_figure(plot_count, ratios=None):
         ratios = np.ones(plot_count)
         ratios[2] += 0.1  # make the plot for the density slightly higher
         ratios[-1] += 0.2  # make the plot for 13CO slightly higher
-    gridspec = dict(hspace=0.0, height_ratios=ratios, width_ratios=[1.5, 2, 3])
-    f, ax = plt.subplots(plot_count, n_regions, facecolor='w', figsize=(12, n_regions * plot_count), sharey=True,
+    if figsize is None:
+        figsize = (12, 2 * plot_count)
+    gridspec = dict(hspace=0.0, height_ratios=ratios, width_ratios=[1.5, 2, 3], **grid_spec_kw)
+    f, ax = plt.subplots(plot_count, n_regions, facecolor='w', figsize=figsize, sharey=True,
                          gridspec_kw=gridspec)
 
     # remove x labels
@@ -58,29 +60,44 @@ def create_figure(plot_count, ratios=None):
         for j in range(n_regions):
             ax[i, j].set_xticks([])
 
-    annotate_transitions(ax)
+    annotate_transitions(ax, thirteen_co)
+
+    # Series titles
+    title_font_size=9.5
+    ax[0, 0].set_title(r"Second overtone ($\Delta v=3$)", fontsize=title_font_size)
+    ax[0, 1].set_title(r"First overtone ($\Delta v=2$)", fontsize=title_font_size)
+    ax[0, 2].set_title(r"Fundamental ($\Delta v=1$)", fontsize=title_font_size)
 
     f.tight_layout()
 
     return f, ax
 
 
-def annotate_transitions(axes):
+def annotate_transitions(axes, thirteen_co=True):
     """
     Mark the vibrational transitions on the plot.
 
     :param axes:
     :return:
     """
+    def annotate_12_co(ax, key, w):
+        ax.annotate(key, xy=(w + 0.0045, 1.45), rotation=90, fontsize=7.5)
+        ax.axvline(w, color='0.55', linewidth=0.2)
+
     for ax in axes.flatten()[:-3]:
         for key, w in cfg.onset_wvl_dict.items():
-            ax.annotate(key, xy=(w - 0.0045, 1.45), rotation=90, fontsize=6.5)
-            ax.axvline(w, color='0.55', linewidth=0.2)
-    # On the last plot mark 13CO
+            annotate_12_co(ax, key, w)
+
     for ax in axes.flatten()[-3:]:
-        for key, w in cfg.CO13_onset.items():
-            ax.annotate(r"$^{13}$CO " + str(key), xy=(w - 0.0045, 1.45), rotation=90, fontsize=7.5)
-            ax.axvline(w, color='0.15', linewidth=0.2)
+        if thirteen_co:
+            for key, w in cfg.CO13_onset.items():
+                ax.annotate(r"$^{13}$CO " + str(key), xy=(w + 0.0045, 1.45), rotation=90, fontsize=7.5)
+                ax.axvline(w, color='0.15', linewidth=0.2)
+        else:
+            for key, w in cfg.onset_wvl_dict.items():
+                annotate_12_co(ax, key, w)
+
+    return
 
 
 def fiducial_model(grid_params, all_params):
@@ -221,28 +238,53 @@ def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=No
     return
 
 
-def create_split_fig():
+def create_split_fig(grid=None):
     """
     Create the main figure for paper 4 split over two figures.
 
     :return:
     """
-    grid_params, all_params, test_param_dict = grids.grid_for_main_figure_p4()
+    if grid is None:
+        grid = grids.grid_for_main_figure_p4()
+    grid_params, all_params, test_param_dict = grid
     gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
+
     plot_count1 = int(len(param_seq_dict_t_new()) / 2 + 1)
     ratios_1 = np.ones(plot_count1)
     plot_count2 = int(len(param_seq_dict_t_new()) / 2)
     ratios_2 = np.ones(plot_count2)
     ratios_2[-1] += 0.2
-    f1, axes1 = create_figure(plot_count1, ratios_1)
-    f2, axes2 = create_figure(plot_count2, ratios_2)
+    width = 10
+    height = width/1.54  # ~A5 proportions
+    f1, axes1 = create_figure(plot_count1, ratios_1, figsize=(width,height), thirteen_co=False,
+                              **dict(top=0.963,
+                                     bottom=0.07,
+                                     left=0.035,
+                                     right=0.962,
+                                     wspace=0.053))
+    f2, axes2 = create_figure(plot_count2, ratios_2, figsize=(width,height),
+                              **dict(top=0.963,
+                                     bottom=0.07,
+                                     left=0.035,
+                                     right=0.962,
+                                     wspace=0.053))
 
     legend_dict = legend_def()
+
+    # split the dictionary according to plot count
+
+    dict_to_list = list(param_seq_dict_t_new().items())
+    items_fig_1 = dict_to_list[:plot_count1]
+    dict_fig_2 = {key-plot_count1:value for key, value in dict_to_list[plot_count1:]}
+    plot_iteratively(grid, legend_dict, (f1, axes1), items_fig_1)
+    plot_iteratively(grid, legend_dict, (f2, axes2), dict_fig_2.items())
 
     legend_dict["title"] = legend_title_dict()["13CO"]
     plot_13co(gp_fid_model.path_grid_folder(), gp_fid_model.filename_co(), wvl, fid_mod_fl, fig_ax=(f2, axes2[-1]),
               legend_dict=legend_dict, **dict(lw=0.8, zorder=1))
 
+    f1.savefig(cfg.plot_folder / ("main_fig_1.pdf"))
+    f2.savefig(cfg.plot_folder / ("main_fig_2.pdf"))
     return
 
 
