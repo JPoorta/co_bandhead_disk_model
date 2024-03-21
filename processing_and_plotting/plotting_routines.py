@@ -18,8 +18,6 @@ label_dict = {"ri": r"$R_i$",
               "tex": r"$T_{\rm ex}$",
               "R": r"$R$ (AU)"}
 
-#TODO add unit dict
-
 
 def plot_star(star):
     """
@@ -153,7 +151,7 @@ def create_3_in_1_figure(num):
                                      "wspace": 0.045})
 
 
-def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
+def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, legend_specs=None, **kwargs):
     """
     Plot the given x,y on a plot showing only the wavelength regions of interest, that is, second, first overtone and
     fundamental. Also plots the legend.
@@ -172,6 +170,9 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     else:
         fig, ax = fig_ax
 
+    if legend_specs is None:
+        legend_specs=dict(loc='upper right')
+
     fig.suptitle(title)
     for axi in ax:
         axi.plot(x, y, **kwargs)
@@ -179,7 +180,7 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
 
     ax[0].set_xlim(1.55, 1.70)  # 1.75
     ax[1].set_xlim(2.285, 2.6)  # 2.9
-    ax[2].set_xlim(4.28, 5.)
+    ax[2].set_xlim(4.28, 5.3)
     ax[0].set_ylim(0.95, 1.5)
 
     ax[0].spines['right'].set_visible(False)
@@ -189,7 +190,7 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, **kwargs):
     ax[2].spines['left'].set_visible(False)
     ax[2].tick_params(labelright=True, right=True, left=False, labelleft=False)
 
-    ax[1].legend(loc='upper right',)   #  bbox_to_anchor=(-0.05, 1)
+    ax[1].legend(**legend_specs)   #  bbox_to_anchor=(-0.05, 1)
 
     return fig, ax
 
