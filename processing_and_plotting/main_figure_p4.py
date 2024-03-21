@@ -20,6 +20,17 @@ def param_seq_dict_t_new():
     return {0: "ti", 1: "t1", 2: "ni", 3: "q", 4: "ri", 5: "inc_deg"}
 
 
+def legend_title_dict():
+    return {"ti": r"$(T_i)_{\rm ex}$ (K)",
+            "t1": r"$T_1$ (K)",
+            "p": "$p$",
+            "ni": r"$(N_i)_{\rm H_2}$ (cm$^{-2}$)",
+            "q": "$q$",
+            "ri": r"$R_i$ (AU)",
+            "inc_deg": r"$i$ $(^{\circ})$ ",
+            "13CO": r"$^{12}$CO/$^{13}$CO"}
+
+
 def create_figure(plot_count, ):
     """
     Create the figure ax object
@@ -30,6 +41,8 @@ def create_figure(plot_count, ):
 
     n_regions = 3  # for 1st ot, 2nd ot and fundamental.
     ratios = np.ones(plot_count)
+    ratios[2] += 0.1  # make the plot for the density slightly higher
+    ratios[-1] += 0.2  # make the plot for 13CO slightly higher
     gridspec = dict(hspace=0.0, height_ratios=ratios, width_ratios=[1.5, 2, 3])
     f, ax = plt.subplots(plot_count, n_regions, facecolor='w', figsize=(12, n_regions * plot_count), sharey=True,
                          gridspec_kw=gridspec)
@@ -53,10 +66,15 @@ def annotate_transitions(axes):
     :param axes:
     :return:
     """
-    for ax in axes.flatten():
+    for ax in axes.flatten()[:-3]:
         for key, w in cfg.onset_wvl_dict.items():
             ax.annotate(key, xy=(w - 0.0045, 1.45), rotation=90, fontsize=6.5)
             ax.axvline(w, color='0.55', linewidth=0.2)
+    # On the last plot mark 13CO
+    for ax in axes.flatten()[-3:]:
+        for key, w in cfg.CO13_onset.items():
+            ax.annotate(r"$^{13}$CO " + str(key), xy=(w - 0.0045, 1.45), rotation=90, fontsize=7.5)
+            ax.axvline(w, color='0.15', linewidth=0.2)
 
 
 def fiducial_model(grid_params, all_params):
@@ -116,26 +134,62 @@ def create_fig_and_plot():
     """
     grid_params, all_params, test_param_dict = grids.grid_for_main_figure_p4()
     gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
-    f, axes = create_figure(plot_count=len(param_seq_dict_t_new()), )
+    f, axes = create_figure(plot_count=len(param_seq_dict_t_new()) + 1, )  # +1 for CO13
+    legend_dict = dict(loc='upper right', bbox_to_anchor=(1.1, 1), fontsize=8.5, title_fontsize=9)
 
     for index, param in param_seq_dict_t_new().items():
 
         model_fluxes = model_fluxes_for_test_param(param, test_param_dict[param], grid_params, all_params, ip_dx)[0]
+        legend_dict["title"] = legend_title_dict()[param]
 
         for value in test_param_dict[param]:
 
-            label = pltr.label_dict[param] + " = " + str(value)
+            label = str(value)
             if param in ["inc_deg", "dv0", "stars"]:
                 default_value = getattr(gp_fid_model, param)[0]
             else:
                 default_value = getattr(gp_fid_model, param)
             if value == default_value:
                 # plot the fiducial model on top in black.
-                pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=(f, axes[index]),
+                pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=(f, axes[index]), legend_specs=legend_dict,
                                           **dict(c="k", lw=0.8, label=label, zorder=2))
             else:
-                pltr.plot_on_divided_axes(wvl, model_fluxes[value], fig_ax=(f, axes[index]),
+                pltr.plot_on_divided_axes(wvl, model_fluxes[value], fig_ax=(f, axes[index]), legend_specs=legend_dict,
                                           **dict(lw=0.8, label=label, zorder=1))
+
+    legend_dict["title"] = legend_title_dict()["13CO"]
+    plot_13co(gp_fid_model.path_grid_folder(), gp_fid_model.filename_co(), wvl, fid_mod_fl, fig_ax=(f, axes[-1]),
+              legend_dict=legend_dict, **dict(lw=0.8, zorder=1))
+
+    return
+
+
+def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=None, legend_dict=None, **plot_kwargs):
+    """
+    Plot the models with different N12CO/N13CO ratios, for a model with otherwise same parameters (fiducial model).
+    Optionally overplot the fiducial model with no 13CO.
+
+    :param folder: (str) folder where both the fiducial model and 13CO included models are stored.
+    :param filename: (str) the filename without file-ending ('npy') for the fiducial model.
+    :param fid_mod_fl: (array) optional normalized fiducial model flux.
+    :param wvl: (array) wavelength array in micron, common to all the models here.
+    :param fig_ax: (tuple) figure and ax object to use. If not provided something will be created.
+    :param iso_ratios: (list of ints) the isotopologue (N12CO/N13CO) ratios of the models.
+    :param legend_dict: dictionary for the legend to be passed to plot on separate axes.
+    :return:
+    """
+    if iso_ratios is None:
+        iso_ratios = grids.default_iso_ratios()
+
+    for ratio in iso_ratios:
+        full_path = folder + filename + "_13C16O_" + str(ratio) + ".npy"
+        flux = np.load(full_path)
+        plot_kwargs["label"] = ratio
+        pltr.plot_on_divided_axes(wvl, flux, fig_ax=fig_ax, legend_specs=legend_dict, **plot_kwargs)
+
+    if fid_mod_fl is not None:
+        pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=fig_ax, legend_specs=legend_dict,
+                                  **dict(lw=0.8, c="k", label=r"no $^{13}$CO", zorder=2))
 
     return
 
