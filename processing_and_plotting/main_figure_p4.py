@@ -11,7 +11,8 @@ import processing_and_plotting.Gridpoint as Gridpoint
 # TODO make figure with T extremes to justify chosen T1 range.
 
 def make_fig():
-    create_fig_and_plot()
+    # create_fig_and_plot()
+    create_split_fig()
     plt.show()
 
 
@@ -31,7 +32,11 @@ def legend_title_dict():
             "13CO": r"$^{12}$CO/$^{13}$CO"}
 
 
-def create_figure(plot_count, ):
+def legend_def():
+    return dict(loc='upper right', bbox_to_anchor=(1.09, 1.04), fontsize=8.5, title_fontsize=9)
+
+
+def create_figure(plot_count, ratios=None):
     """
     Create the figure ax object
 
@@ -40,9 +45,10 @@ def create_figure(plot_count, ):
     """
 
     n_regions = 3  # for 1st ot, 2nd ot and fundamental.
-    ratios = np.ones(plot_count)
-    ratios[2] += 0.1  # make the plot for the density slightly higher
-    ratios[-1] += 0.2  # make the plot for 13CO slightly higher
+    if ratios is None:
+        ratios = np.ones(plot_count)
+        ratios[2] += 0.1  # make the plot for the density slightly higher
+        ratios[-1] += 0.2  # make the plot for 13CO slightly higher
     gridspec = dict(hspace=0.0, height_ratios=ratios, width_ratios=[1.5, 2, 3])
     f, ax = plt.subplots(plot_count, n_regions, facecolor='w', figsize=(12, n_regions * plot_count), sharey=True,
                          gridspec_kw=gridspec)
@@ -126,18 +132,22 @@ def model_fluxes_for_test_param(test_param, test_array, grid_params, all_params,
     return model_fluxes, model_names
 
 
-def create_fig_and_plot():
+def plot_iteratively(grid, legend_dict, fig_ax, param_seq_dict):
     """
-    Bring the ingredients together and plot the fluxes.
+    Iterate over the parameters in param_seq_dict and plot the variation of models for each paramter on the given plot.
 
+    :param grid:
+    :param legend_dict:
+    :param fig_ax:
+    :param param_seq_dict:
     :return:
     """
-    grid_params, all_params, test_param_dict = grids.grid_for_main_figure_p4()
-    gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
-    f, axes = create_figure(plot_count=len(param_seq_dict_t_new()) + 1, )  # +1 for CO13
-    legend_dict = dict(loc='upper right', bbox_to_anchor=(1.1, 1), fontsize=8.5, title_fontsize=9)
 
-    for index, param in param_seq_dict_t_new().items():
+    f, axes = fig_ax
+    grid_params, all_params, test_param_dict = grid
+    gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
+
+    for index, param in param_seq_dict:
 
         model_fluxes = model_fluxes_for_test_param(param, test_param_dict[param], grid_params, all_params, ip_dx)[0]
         legend_dict["title"] = legend_title_dict()[param]
@@ -156,6 +166,23 @@ def create_fig_and_plot():
             else:
                 pltr.plot_on_divided_axes(wvl, model_fluxes[value], fig_ax=(f, axes[index]), legend_specs=legend_dict,
                                           **dict(lw=0.8, label=label, zorder=1))
+    return
+
+
+def create_fig_and_plot(grid=None):
+    """
+    Bring the ingredients together and plot the fluxes.
+
+    :return:
+    """
+    if grid is None:
+        grid = grids.grid_for_main_figure_p4()
+    grid_params, all_params, test_param_dict = grid
+    gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
+    f, axes = create_figure(plot_count=len(param_seq_dict_t_new()) + 1, )  # +1 for CO13
+    legend_dict = legend_def()
+
+    plot_iteratively(grid, legend_dict, (f, axes), param_seq_dict_t_new().items())
 
     legend_dict["title"] = legend_title_dict()["13CO"]
     plot_13co(gp_fid_model.path_grid_folder(), gp_fid_model.filename_co(), wvl, fid_mod_fl, fig_ax=(f, axes[-1]),
@@ -190,6 +217,31 @@ def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=No
     if fid_mod_fl is not None:
         pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=fig_ax, legend_specs=legend_dict,
                                   **dict(lw=0.8, c="k", label=r"no $^{13}$CO", zorder=2))
+
+    return
+
+
+def create_split_fig():
+    """
+    Create the main figure for paper 4 split over two figures.
+
+    :return:
+    """
+    grid_params, all_params, test_param_dict = grids.grid_for_main_figure_p4()
+    gp_fid_model, fid_mod_fl, wvl, ip_dx = fiducial_model(grid_params, all_params)
+    plot_count1 = int(len(param_seq_dict_t_new()) / 2 + 1)
+    ratios_1 = np.ones(plot_count1)
+    plot_count2 = int(len(param_seq_dict_t_new()) / 2)
+    ratios_2 = np.ones(plot_count2)
+    ratios_2[-1] += 0.2
+    f1, axes1 = create_figure(plot_count1, ratios_1)
+    f2, axes2 = create_figure(plot_count2, ratios_2)
+
+    legend_dict = legend_def()
+
+    legend_dict["title"] = legend_title_dict()["13CO"]
+    plot_13co(gp_fid_model.path_grid_folder(), gp_fid_model.filename_co(), wvl, fid_mod_fl, fig_ax=(f2, axes2[-1]),
+              legend_dict=legend_dict, **dict(lw=0.8, zorder=1))
 
     return
 
