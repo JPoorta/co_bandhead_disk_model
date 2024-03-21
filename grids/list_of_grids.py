@@ -16,6 +16,38 @@ def vibrational_levels_for_3_ro_vib_series():
     return vupper, vlower
 
 
+def default_iso_ratios():
+    """
+    Default isotopologue ratio's for 13CO.
+
+    :return:
+    """
+    return [4, 10, 30, 50, 89]
+
+
+def grid_including_13co(species, iso_ratio, grid=None):
+    """
+    For a given grid, adjust the saving folder, the isotopologue, and the iso_ratio parameters. Return the updated grid.
+
+    :param species: (str) name of isotopologue
+    :param iso_ratio: (int) N12CO/Nisotopologue (only 13CO so far)
+    :param grid: (tuple) the three dictionaries containing all that specifies a grid. Default is the one for the main
+    figure paper 4.
+    :return:
+    """
+
+    if grid is None:
+        grid = grid_for_main_figure_p4()
+
+    grid_params, all_params, test_param_dict = [x.copy() for x in grid]
+
+    all_params["species"] = species
+    all_params["save"] += "_" + species + "_" + str(iso_ratio)
+    all_params["iso_ratio"] = iso_ratio
+
+    return grid_params, all_params, test_param_dict
+
+
 def grid_for_main_figure_p4(star=None):
     """
 
