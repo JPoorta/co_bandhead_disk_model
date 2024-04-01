@@ -50,7 +50,7 @@ def grid_including_13co(species, iso_ratio, grid=None):
 
 def grid_for_main_figure_p4(star=None):
     """
-
+    Varying the parameter space around 1 fiducial model. Both the cumulative flux arrays and the final models are saved.
 
     :param star:
     :return:
@@ -75,7 +75,7 @@ def grid_for_main_figure_p4(star=None):
     all_params["vupper"] = vupper
     all_params["vlower"] = vlower
     all_params["Rmax_in"] = 100
-    all_params["dF"] = None
+    all_params["dF"] = ""
     all_params["num_CO"] = 100
     all_params["convolve"] = False
     all_params["maxmin"] = [5, -5]
@@ -89,7 +89,7 @@ def grid_for_main_figure_p4(star=None):
 def common_test_grid(test_param_dict=None):
     """
     Grid most commonly used in preparation for P4 to test stuff with adaptable test parameter grid.
-    Note that the arrays for cumulative flux calculation are being saved for this grid.
+    Note that the arrays for cumulative flux calculation are being saved for this grid, but not the final models.
 
     :return:
     """
@@ -123,5 +123,29 @@ def common_test_grid_original_t(test_param_dict=None):
     grid_params["t1"] = None
     grid_params["a"] = -11
     all_params["Rmax_in"] = 100
+
+    return grid_params, all_params, test_param_dict
+
+
+def common_test_grid_save(test_param_dict=None):
+    """
+    Used for P4 to create the variation of T1 figure.
+    The model fluxes are being saved for this grid, but not the cum flux arrays.
+
+    :return:
+    """
+
+    grid_params, all_params = cfg.get_default_params("B275")
+    if test_param_dict is None:
+        test_param_dict = {"t1": [500, 800, 1000, 1200]}
+    vupper, vlower = vibrational_levels_for_3_ro_vib_series()
+    all_params["vupper"] = vupper
+    all_params["vlower"] = vlower
+    all_params["Rmax_in"] = 100
+    all_params["convolve"] = False
+    all_params["maxmin"] = [100, -100]
+    all_params["print_Rs"] = False
+    all_params["save_reduced_flux"] = False
+    all_params["save"] = "common_test"
 
     return grid_params, all_params, test_param_dict
