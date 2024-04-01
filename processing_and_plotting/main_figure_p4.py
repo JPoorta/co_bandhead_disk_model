@@ -7,9 +7,6 @@ import grids.list_of_grids as grids
 import processing_and_plotting.Gridpoint as Gridpoint
 
 
-# TODO add 13CO, split figure in two 4, 3, with 13CO in the 3 plot, paste in thesis intro to see what it looks like
-# TODO make figure with T extremes to justify chosen T1 range.
-
 def make_fig():
     # create_fig_and_plot()
     create_split_fig()
@@ -38,9 +35,13 @@ def legend_def():
 
 def create_figure(plot_count, ratios=None, figsize=None, thirteen_co=True, **grid_spec_kw):
     """
-    Create the figure ax object
+     Create the figure ax object
 
     :param plot_count:(int) amount of parameters to be plotted (# "rows").
+    :param ratios:
+    :param figsize:
+    :param thirteen_co:
+    :param grid_spec_kw:
     :return:
     """
 
@@ -63,7 +64,7 @@ def create_figure(plot_count, ratios=None, figsize=None, thirteen_co=True, **gri
     annotate_transitions(ax, thirteen_co)
 
     # Series titles
-    title_font_size=9.5
+    title_font_size = 9.5
     ax[0, 0].set_title(r"Second overtone ($\Delta v=3$)", fontsize=title_font_size)
     ax[0, 1].set_title(r"First overtone ($\Delta v=2$)", fontsize=title_font_size)
     ax[0, 2].set_title(r"Fundamental ($\Delta v=1$)", fontsize=title_font_size)
@@ -75,14 +76,24 @@ def create_figure(plot_count, ratios=None, figsize=None, thirteen_co=True, **gri
 
 def annotate_transitions(axes, thirteen_co=True):
     """
-    Mark the vibrational transitions on the plot.
+    Mark the vibrational transitions on the two plots.
 
     :param axes:
+    :param thirteen_co: (bool) if True mark the 13CO transitions on the last 3-in-1 plot.
     :return:
     """
-    def annotate_12_co(ax, key, w):
-        ax.annotate(key, xy=(w + 0.0045, 1.45), rotation=90, fontsize=7.5)
-        ax.axvline(w, color='0.55', linewidth=0.2)
+
+    def annotate_12_co(axi, key_i, wi):
+        """
+
+        :param axi: matplotlib ax object
+        :param key_i: the text to annotate, in this case a tuple with two ints for vib levels.
+        :param wi: wavelength
+        :return:
+        """
+        axi.annotate(key_i, xy=(wi + 0.0045, 1.45), rotation=90, fontsize=7.5)
+        axi.axvline(wi, color='0.55', linewidth=0.2)
+        return
 
     for ax in axes.flatten()[:-3]:
         for key, w in cfg.onset_wvl_dict.items():
@@ -172,11 +183,7 @@ def plot_iteratively(grid, legend_dict, fig_ax, param_seq_dict):
         for value in test_param_dict[param]:
 
             label = str(value)
-            if param in ["inc_deg", "dv0", "stars"]:
-                default_value = getattr(gp_fid_model, param)[0]
-            else:
-                default_value = getattr(gp_fid_model, param)
-            if value == default_value:
+            if value == gp_fid_model.return_value(param):
                 # plot the fiducial model on top in black.
                 pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=(f, axes[index]), legend_specs=legend_dict,
                                           **dict(c="k", lw=0.8, label=label, zorder=2))
@@ -255,14 +262,14 @@ def create_split_fig(grid=None):
     ratios_2 = np.ones(plot_count2)
     ratios_2[-1] += 0.2
     width = 10
-    height = width/1.54  # ~A5 proportions
-    f1, axes1 = create_figure(plot_count1, ratios_1, figsize=(width,height), thirteen_co=False,
+    height = width / 1.54  # ~A5 proportions
+    f1, axes1 = create_figure(plot_count1, ratios_1, figsize=(width, height), thirteen_co=False,
                               **dict(top=0.963,
                                      bottom=0.07,
                                      left=0.035,
                                      right=0.962,
                                      wspace=0.053))
-    f2, axes2 = create_figure(plot_count2, ratios_2, figsize=(width,height),
+    f2, axes2 = create_figure(plot_count2, ratios_2, figsize=(width, height),
                               **dict(top=0.963,
                                      bottom=0.07,
                                      left=0.035,
@@ -275,7 +282,7 @@ def create_split_fig(grid=None):
 
     dict_to_list = list(param_seq_dict_t_new().items())
     items_fig_1 = dict_to_list[:plot_count1]
-    dict_fig_2 = {key-plot_count1:value for key, value in dict_to_list[plot_count1:]}
+    dict_fig_2 = {key - plot_count1: value for key, value in dict_to_list[plot_count1:]}
     plot_iteratively(grid, legend_dict, (f1, axes1), items_fig_1)
     plot_iteratively(grid, legend_dict, (f2, axes2), dict_fig_2.items())
 
@@ -283,8 +290,8 @@ def create_split_fig(grid=None):
     plot_13co(gp_fid_model.path_grid_folder(), gp_fid_model.filename_co(), wvl, fid_mod_fl, fig_ax=(f2, axes2[-1]),
               legend_dict=legend_dict, **dict(lw=0.8, zorder=1))
 
-    f1.savefig(cfg.plot_folder / ("main_fig_1.pdf"))
-    f2.savefig(cfg.plot_folder / ("main_fig_2.pdf"))
+    f1.savefig(cfg.plot_folder / "main_fig_1.pdf")
+    f2.savefig(cfg.plot_folder / "main_fig_2.pdf")
     return
 
 

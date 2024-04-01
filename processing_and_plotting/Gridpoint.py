@@ -395,3 +395,17 @@ class Gridpoint:
         else:
             ip, dx = ip_dx
         return np.convolve(flux, ip, mode="same") * dx
+
+    def return_value(self, param):
+        """
+        Return the value of a given parameter. For parameter that have array value (see below), return the first item.
+
+        :param param: (str) parameter name.
+        :return:
+        """
+        if param in ["inc_deg", "dv0", "stars"]:
+            value = getattr(self, param)[0]
+        else:
+            value = getattr(self, param)
+
+        return value
