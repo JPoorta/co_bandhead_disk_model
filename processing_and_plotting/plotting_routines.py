@@ -115,7 +115,6 @@ def quick_plot_norm_flux(star, wvl, flux_norm_ext, label):
     plt.figure(1)
     plt.title(star + " Normalized flux")
     plt.plot(wvl, flux_norm_ext, label=label)
-    plt.vlines([1.558, 1.5779, 1.5982], 0, 2, linestyles='dashed')
     plt.legend()
     return
 
