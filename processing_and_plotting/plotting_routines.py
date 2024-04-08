@@ -83,6 +83,7 @@ def plot_275_checks(fig_ax=None, no_dust=False, rmax_in=False):
         rmax_in100 = np.load(cfg.spectra_dir / "B275_Rmax_in_100.npy")
         plot_on_divided_axes(wvl, rmax_in100, fig_ax=fig_ax, **{"label": "Rmax_in=100 (Rmax=60)", "zorder": -1})
 
+    return
 
 def quick_plot_results(star, wvl, flux_tot_ext, flux_norm_ext, continuum_flux, label):
     """

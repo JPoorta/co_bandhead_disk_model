@@ -160,18 +160,18 @@ def plots_for_intro_grid():
     star = "B275"
     grid_params, all_params = cfg.get_default_params(star)
 
-    test_param_dict = {"Rmin_in": [0.261, 0.446, 0.667]}
+    test_param_dict = {"Rmin_in": [0.261]}  # , 0.446, 0.667
 
-    all_params["vupper"] = [2]
-    all_params["vlower"] = [0]
+    all_params["vupper"] = [1,2,3]  # [2] for stages in bh plot
+    all_params["vlower"] = [0,0,0]  # [0] for stages in bh plot
     all_params["dust"] = True
     grid_params["p"] = -2
     grid_params["t1"] = None  # 800  #
     grid_params["a"] = None  # -11  #
     grid_params["ri"] = 0.261
-    all_params["Rmax_in"] = all_params["Rmin_in"]+0.001
+    all_params["Rmax_in"] = None  # all_params["Rmin_in"]+0.001 for ring in stages of bh plot
     all_params["dF"] = None  # ""
-    all_params["num_CO"] = 2
-    # all_params["inc_deg"] = [10]
+    all_params["num_CO"] = 5  # for the tau for different temperatures;
+    # all_params["num_CO"] = 2 for ring in stages of bh plot
 
     return grid_params, all_params, test_param_dict

@@ -198,3 +198,37 @@ def add_and_save(iso_flux_dict, test_array, fid_model_dict, species_list, ratio,
         np.save(folder + model_name, base_flux)
 
     return
+
+
+def run_grid_for_intro():
+    """
+    Run the grid not as a grid, but going through each test value separately as set in 'model.example'.
+
+
+    :param grid: (list of three dicts) grid as defined in 'list_of_grids'. In all_params "convolve" must be set to True,
+    and "save" to None. Pretty much any grid with the default grid params as defined in config should work.
+    :param quick_plots:
+    :param plot_B275_checks:
+    :return:
+    """
+    grid_params, all_params, test_param_dict = list_of_grids.plots_for_intro_grid()
+
+    grid = ex.make_grid(**grid_params)
+
+    for value in test_param_dict["Rmin_in"]:
+        all_params["Rmin_in"] = value
+        # all_params["Rmax_in"] = value+0.001
+
+
+        wvl, flux_tot_ext, flux_norm_ext, flux_norm_intp, conv_flux, conv_flux_norm = \
+            fld.run_grid_log_r(grid, **all_params)
+
+        continuum_flux = flux_tot_ext / flux_norm_ext
+
+        pltr.quick_plot_results(all_params["stars"][0], wvl, flux_tot_ext, flux_norm_ext, continuum_flux,
+                                label="Rmin_in" + " = " + str(value))
+
+
+    plt.show()
+
+    return
