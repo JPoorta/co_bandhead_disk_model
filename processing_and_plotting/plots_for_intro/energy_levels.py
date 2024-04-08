@@ -3,17 +3,32 @@ import matplotlib.pyplot as plt
 
 import model.config as cfg
 
-rot_series_dict = {"P": dict(m=0, plot_args={"c": 'b', "label": "P"}),
-                   "Q": dict(m=1, plot_args={"c": 'k', "label": "Q"}),
-                   "R": dict(m=2, plot_args={"c": 'g', "label": "R"})}
+rot_series_dict = {"P": dict(m=0, plot_args={"c": 'b',"s":0.0002,"marker":'.', "label": r"P($\Delta \rm J=-1$)"}),
+                   "Q": dict(m=1, plot_args={"c": 'k', }),
+                   "R": dict(m=2, plot_args={"c": 'g', "s":0.0002,"marker":'.', "label": r"R($\Delta \rm J=+1$)"})}
 
-vib_transitions = [(1, 0), (2, 1), (2, 0), (3, 1), (3, 0), (4, 1)]
+vib_transitions = [(1, 0), (2, 0), (3, 0), (2, 1), (3, 1), (4, 1), (3, 2), (4, 2), (5, 2), (4, 3), (5, 3), (6, 3)]
 
 
 def run():
     vu, vl = vib_transitions[0]
     plot_multiple_ro_vib_e_levels(vib_transitions, rot_series_dict)
-    plt.legend()
+    plt.xlabel(r"$\nu$ $(\rm cm^{-1})$", fontsize=13)
+    plt.ylabel(r"$\rm J_{\rm lower}$", fontsize=13)
+    plt.ylim(-6, 160)
+    # plt.yticklabels(['20', '40', '60', '80','100','120','140','150'])
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys(),markerscale=5,loc='best', bbox_to_anchor=(0., 0., 0.5, 0.5))
+
+    plt.annotate(r"Second overtone ($\Delta v=3$)",xy=(4415, 153.5),fontsize=9)
+    plt.annotate(r"First overtone ($\Delta v=2$)",xy=(2700, 153.5),fontsize=9)
+    plt.annotate(r"Fundamental ($\Delta v=1$)", xy=(1030, 153.5),fontsize=9)
+
+    plt.tight_layout()
+
+    plt.savefig(cfg.plot_folder / "energy_levels.pdf")
 
     plt.show()
 
@@ -44,7 +59,7 @@ def plot_ro_vib_energy_levels(vu, vl, plot_spec_dict, species="12C16O"):
 
 def plot_rot_energy_levels_pqr(freq_trans, jlower, jupper, plot_spec_dict):
     """
-    Plot the rotational energy levels, marking the P, Q, and R branches separatly.
+    Plot the rotational energy levels, marking the P, Q, and R branches separately.
 
     :param freq_trans:
     :param jlower:
