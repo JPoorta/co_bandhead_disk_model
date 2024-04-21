@@ -1,7 +1,7 @@
 # CO bandhead disk model
 
 This code calculates parametrized LTE models of CO (overtone) bandhead emission, from a flat Keplarian disk with a radial temperature and column density structure. Detailed description of the model and its scientific motivation can be found in the paper "Massive pre-main-sequence stars in M17: First and second overtone CO bandhead emission and the thermal infrared." by [J. Poorta et al.](https://ui.adsabs.harvard.edu/abs/2023arXiv230501436P/abstract) (DOI: https://doi.org/10.1051/0004-6361/202245658). The exact version of the code used for the paper can be found at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7774529.svg)](https://doi.org/10.5281/zenodo.7774529)
-> **NOTE: For an improved, recent version that is under development, with added functionalities (e.g., for processing and plotting models) check out the new_version_in_progress branch!**
+> **NOTE: Check out the new_version_in_progress branch for an improved, recent version that is under development, with added functionalities (e.g., for processing and plotting models).**
 
 ## Table of Contents
 - [Installation and dependencies](#installation-and-dependencies)
