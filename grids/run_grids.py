@@ -29,7 +29,7 @@ def run_quick_test_grid(grid, quick_plots=False, plot_B275_checks=False, save=No
         gp, star, wvl, continuum_flux = ex.run_test(test_param, test_param_array, grid_params.copy(), all_params.copy(),
                                                     (fig, ax), quick_plots)
 
-    ex.finish_plots(gp, star, wvl, continuum_flux, (fig, ax), quick_plots, plot_B275_checks)
+    ex.finish_plots(gp, star, wvl, continuum_flux, (fig, ax), quick_plots=quick_plots, plot_B275_checks=plot_B275_checks)
 
     if save is not None:
         fig.savefig(cfg.plot_folder / (save + ".pdf"))
