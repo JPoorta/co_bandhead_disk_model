@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.example &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">model package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">model.example</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for model.example</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Run this module to quickly calculate and plot a set of models.</span>
+<span class="sd">Different parameter settings can be tested by changing input in :meth:`example.run` and defaults can be adapted in</span>
+<span class="sd">``grid_params`` or ``all_params`` (see source code).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">model.config</span> <span class="k">as</span> <span class="nn">cfg</span>
+<span class="kn">import</span> <span class="nn">model.sed_calculations</span> <span class="k">as</span> <span class="nn">seds</span>
+<span class="kn">from</span> <span class="nn">model.flat_disk_log_grid</span> <span class="kn">import</span> <span class="n">run_grid_log_r</span>
+
+
+<div class="viewcode-block" id="run">
+<a class="viewcode-back" href="../../model.html#model.example.run">[docs]</a>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">test_param</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">test_param_array</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method will be run when the module is called from the command line. It will calculate and plot a (set of)</span>
+<span class="sd">    model(s) with default settings and the option to test several values for one parameter. NOTE: it will calculate</span>
+<span class="sd">    the model(s) only for the first star specified in ``all_params[stars]``, unless `test_param` is &quot;stars&quot;.</span>
+
+<span class="sd">    :param test_param: the name of the input parameter which for which a (set of) model(s) is to be calculated. This</span>
+<span class="sd">        can be any parameter listed in the dictionaries ``grid_params`` or ``all_params``.</span>
+<span class="sd">    :type test_param: str</span>
+<span class="sd">    :param test_param_array: list or array of values (can be only one) that test_param should take. In general</span>
+<span class="sd">        parameters cannot take just any value, so make sure to provide correct types and (more or less) physical values</span>
+<span class="sd">        where relevant. More information can be found in :meth:`flat_disk_log_grid.run_grid_log_r`.</span>
+<span class="sd">    :type test_param_array: array-like</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">test_param</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">test_param</span> <span class="o">=</span> <span class="s2">&quot;dv0&quot;</span>  <span class="c1"># &quot;p&quot;</span>
+    <span class="k">if</span> <span class="n">test_param_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">test_param_array</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>  <span class="c1"># [-0.5, -0.75, -2]</span>
+
+    <span class="n">run_test</span><span class="p">(</span><span class="n">test_param</span><span class="p">,</span> <span class="n">test_param_array</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">return</span></div>
+
+
+
+<span class="c1"># DEFAULTS</span>
+
+<span class="n">grid_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Ri&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span>
+               <span class="s2">&quot;Ti&quot;</span><span class="p">:</span> <span class="mi">4000</span><span class="p">,</span>  <span class="c1"># [500,1000,2500,4000] ,</span>
+               <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.75</span><span class="p">,</span>  <span class="c1"># [-0.5, -0.75, -2]</span>
+               <span class="s2">&quot;Ni&quot;</span><span class="p">:</span> <span class="mf">3.e25</span><span class="p">,</span>
+               <span class="s2">&quot;q&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">,</span>
+               <span class="p">}</span>
+
+<span class="n">all_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inc_deg&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">],</span>  <span class="c1"># 10,20,30,40,50,60,70,80</span>
+              <span class="s2">&quot;stars&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;B275&#39;</span><span class="p">],</span>  <span class="c1"># , &#39;B243&#39;, &#39;B275&#39;, &#39;B163&#39;, &#39;B331&#39;]</span>
+              <span class="s2">&quot;dv0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+              <span class="s2">&quot;vupper&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+              <span class="s2">&quot;vlower&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+              <span class="s2">&quot;nJ&quot;</span><span class="p">:</span> <span class="mi">150</span><span class="p">,</span>
+              <span class="s2">&quot;dust&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+              <span class="s2">&quot;sed_best_fit&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+              <span class="c1"># From here on only optional parameters.</span>
+              <span class="s2">&quot;num_CO&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+              <span class="s2">&quot;num_dust&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+              <span class="s2">&quot;Rmin_in&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="s2">&quot;Rmax_in&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="s2">&quot;print_Rs&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+              <span class="s2">&quot;convolve&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+              <span class="s2">&quot;save&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="s2">&quot;maxmin&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">),</span>
+              <span class="s2">&quot;lisa_it&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="s2">&quot;saved_list&quot;</span><span class="p">:</span> <span class="kc">None</span>
+              <span class="p">}</span>
+
+
+<div class="viewcode-block" id="plot_star">
+<a class="viewcode-back" href="../../model.html#model.example.plot_star">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_star</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to plot the SED and photometry of the first star specified under ``all_params[stars]``.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">star</span> <span class="o">=</span> <span class="n">all_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stars&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">Mstar</span><span class="p">,</span> <span class="n">T_eff</span><span class="p">,</span> <span class="n">log_g</span><span class="p">,</span> <span class="n">Rstar</span><span class="p">,</span> <span class="n">Res</span><span class="p">,</span> <span class="n">SNR</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">RV</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">stel_parameter_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
+    <span class="n">photometry</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">photometry_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
+    <span class="n">flux_phot</span><span class="p">,</span> <span class="n">sigma_phot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">photometry</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">modelname</span><span class="p">,</span> <span class="n">Ti_d</span><span class="p">,</span> <span class="n">p_d</span><span class="p">,</span> <span class="n">Ni_d</span><span class="p">,</span> <span class="n">q_d</span><span class="p">,</span> <span class="n">i_d</span><span class="p">,</span> <span class="n">Ri_d_AU</span><span class="p">,</span> <span class="n">gass_mass</span><span class="p">,</span> <span class="n">chi_sq</span><span class="p">,</span> <span class="n">chi_sq_red</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">best_dust_fit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
+    <span class="n">wvl_sed</span><span class="p">,</span> <span class="n">flux_sed</span><span class="p">,</span> <span class="n">fl_star_ext</span><span class="p">,</span> <span class="n">fl_dust_ext</span><span class="p">,</span> <span class="n">flux_sed_not_ext</span> <span class="o">=</span> <span class="n">seds</span><span class="o">.</span><span class="n">SED_full</span><span class="p">(</span><span class="n">Ri_d_AU</span><span class="p">,</span> <span class="n">Ti_d</span><span class="p">,</span> <span class="n">p_d</span><span class="p">,</span> <span class="n">Ni_d</span><span class="p">,</span> <span class="n">q_d</span><span class="p">,</span> <span class="n">i_d</span><span class="p">,</span>
+                                                                                  <span class="n">star</span><span class="p">,</span>
+                                                                                  <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">num_r</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">wvl_sed</span><span class="p">,</span> <span class="n">flux_sed</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;SED best fit&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">wvl_sed</span><span class="p">,</span> <span class="n">fl_star_ext</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;star&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">photometry</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">flux_phot</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">sigma_phot</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;photometry&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">1.e-15</span><span class="p">,</span> <span class="mf">1.e-9</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="make_grid">
+<a class="viewcode-back" href="../../model.html#model.example.make_grid">[docs]</a>
+<span class="k">def</span> <span class="nf">make_grid</span><span class="p">(</span><span class="n">Ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">Ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">Ri</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check</span>
+<span class="sd">    :meth:`flat_disk_log_grid.run_grid_log_r`.</span>
+
+<span class="sd">    :param Ti:</span>
+<span class="sd">    :param p:</span>
+<span class="sd">    :param Ni:</span>
+<span class="sd">    :param q:</span>
+<span class="sd">    :param Ri:</span>
+<span class="sd">    :return: numpy grid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">Ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">Ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">Ri</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="run_test">
+<a class="viewcode-back" href="../../model.html#model.example.run_test">[docs]</a>
+<span class="k">def</span> <span class="nf">run_test</span><span class="p">(</span><span class="n">test_param</span><span class="p">,</span> <span class="n">test_param_array</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For each value in `test_param_array` calculate and plot a model with otherwise default values. For more</span>
+<span class="sd">    information on the input see :meth:`example.run`</span>
+
+<span class="sd">    :param test_param:</span>
+<span class="sd">    :param test_param_array:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">star</span> <span class="o">=</span> <span class="n">all_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stars&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">test_param_array</span><span class="p">:</span>
+
+        <span class="c1"># If the parameter is a grid parameter:</span>
+        <span class="k">if</span> <span class="n">test_param</span> <span class="ow">in</span> <span class="n">grid_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">grid_params</span><span class="p">[</span><span class="n">test_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="c1"># If it is one of the parameters which take an iterable as input.</span>
+        <span class="k">elif</span> <span class="n">test_param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;inc_deg&quot;</span><span class="p">,</span> <span class="s2">&quot;stars&quot;</span><span class="p">,</span> <span class="s2">&quot;dv0&quot;</span><span class="p">]:</span>
+            <span class="n">all_params</span><span class="p">[</span><span class="n">test_param</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="c1"># If it is one of the other passable parameters:</span>
+        <span class="k">elif</span> <span class="n">test_param</span> <span class="ow">in</span> <span class="n">all_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">all_params</span><span class="p">[</span><span class="n">test_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Please pass a valid test parameter. &quot;</span>
+                <span class="s2">&quot;This is one of the parameters in the dictionaries &lt;grid_params&gt; and &lt;all_params&gt;.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">make_grid</span><span class="p">(</span><span class="o">**</span><span class="n">grid_params</span><span class="p">)</span>
+        <span class="n">wvl</span><span class="p">,</span> <span class="n">flux_tot_ext</span><span class="p">,</span> <span class="n">flux_norm_ext</span><span class="p">,</span> <span class="n">flux_norm_intp</span><span class="p">,</span> <span class="n">conv_flux</span><span class="p">,</span> <span class="n">conv_flux_norm</span> <span class="o">=</span> \
+            <span class="n">run_grid_log_r</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="o">**</span><span class="n">all_params</span><span class="p">)</span>
+
+        <span class="n">continuum_flux</span> <span class="o">=</span> <span class="n">flux_tot_ext</span> <span class="o">/</span> <span class="n">flux_norm_ext</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">star</span> <span class="o">+</span> <span class="s2">&quot; Continuum subtracted, extincted flux&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">flux_tot_ext</span> <span class="o">-</span> <span class="n">continuum_flux</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">test_param</span> <span class="o">+</span> <span class="s2">&quot; = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">star</span> <span class="o">+</span> <span class="s2">&quot; Normalized flux&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">flux_norm_ext</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">test_param</span> <span class="o">+</span> <span class="s2">&quot; = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">vlines</span><span class="p">([</span><span class="mf">1.558</span><span class="p">,</span> <span class="mf">1.5779</span><span class="p">,</span> <span class="mf">1.5982</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">linestyles</span><span class="o">=</span><span class="s1">&#39;dashed&#39;</span><span class="p">)</span>
+        <span class="c1"># plt.ylim(0.99,1.12)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">star</span> <span class="o">+</span> <span class="s2">&quot; Normalized, convolved flux&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">conv_flux_norm</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">test_param</span> <span class="o">+</span> <span class="s2">&quot; = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="c1"># plt.ylim(0.99, 1.12)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">flux_tot_ext</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;total extincted flux; &#39;</span> <span class="o">+</span> <span class="n">test_param</span> <span class="o">+</span> <span class="s2">&quot; = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">continuum_flux</span><span class="p">,</span> <span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;total continuum flux&quot;</span><span class="p">)</span>
+    <span class="n">plot_star</span><span class="p">()</span>
+
+    <span class="k">return</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

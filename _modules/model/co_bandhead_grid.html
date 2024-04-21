@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.co_bandhead_grid &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">model package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">model.co_bandhead_grid</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for model.co_bandhead_grid</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Run this module to calculate a grid of CO-bandhead spectra. Check a few things:</span>
+
+<span class="sd">1. That a ``results`` folder exists in the project folder with the star folders.</span>
+<span class="sd">    (e.g. `&lt;full/path/to&gt;/co_bandhead_disk_model/results/B268`)</span>
+
+<span class="sd">2. Check on local machine if all the imports work (if all necessary python packages are installed).</span>
+
+<span class="sd">Run this module from command line as follows:</span>
+
+<span class="sd">.. code-block:: bash</span>
+
+<span class="sd">    $ python -m model.co_bandhead_grid {i}</span>
+
+<span class="sd">with the optional argument `i` explained under :meth:`~model.calculate_grid`.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">model.config</span> <span class="k">as</span> <span class="nn">cfg</span>
+<span class="kn">import</span> <span class="nn">model.flat_disk_log_grid</span> <span class="k">as</span> <span class="nn">fld</span>
+
+
+<span class="c1"># 90000</span>
+<span class="n">Ti</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="mi">4500</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mi">5500</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">7000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">])</span>  <span class="c1"># 9</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># 5</span>
+<span class="n">Ni</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="mf">5.e23</span><span class="p">,</span> <span class="mf">5.e27</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># 10</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">])</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># 4</span>
+<span class="n">Ri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="mf">1.1</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># 10</span>
+<span class="n">dv0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>  <span class="c1"># 5</span>
+
+<span class="n">inc_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">80</span><span class="p">])</span>
+
+<span class="n">stars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;B268&#39;</span><span class="p">,</span> <span class="s1">&#39;B243&#39;</span><span class="p">,</span> <span class="s1">&#39;B275&#39;</span><span class="p">,</span> <span class="s1">&#39;B163&#39;</span><span class="p">,</span> <span class="s1">&#39;B331&#39;</span><span class="p">]</span>  <span class="c1">#</span>
+
+<span class="n">vupper</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+<span class="n">vlower</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">nJ</span> <span class="o">=</span> <span class="mi">150</span>
+<span class="n">dust</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">saved_list</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="n">sed_best_fit</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">grid_name</span> <span class="o">=</span> <span class="s2">&quot;grid_21_5_2021_dv&quot;</span>
+<span class="n">wvl_file</span> <span class="o">=</span> <span class="s2">&quot;wvl_re.npy&quot;</span>
+
+<span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">Ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">Ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">Ri</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="p">[</span><span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="calculate_grid">
+<a class="viewcode-back" href="../../model.html#model.co_bandhead_grid.calculate_grid">[docs]</a>
+<span class="k">def</span> <span class="nf">calculate_grid</span><span class="p">(</span><span class="n">thread_no</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the full grid specified in this module (or 1/16th of it, see ``thread_no``)  for all the objects under</span>
+<span class="sd">    ``stars``; i.e., one grid per star. Results will be stored in the ``results`` folder with structure</span>
+<span class="sd">    **results/&lt;star&gt;/&lt;grid_name&gt;/*.npy**.</span>
+
+<span class="sd">    :param thread_no: If `int`, it should be between 0 and 15; in which case for each integer 1/16th of the</span>
+<span class="sd">        grid will be calculated, so that the grid can be calculated parallel on 16 cores, by calling this  function</span>
+<span class="sd">        16 times with ``thread_no`` = [0, ... ,15].</span>
+
+<span class="sd">        If `None`, the full grid for all the stars will be calculated serially.</span>
+<span class="sd">    :type thread_no: int or None</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="n">stars</span><span class="p">:</span>
+        <span class="c1"># Create the folders where the results are to be stored.</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">results_folder</span> <span class="o">/</span> <span class="p">(</span><span class="n">star</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">grid_name</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">results_folder</span> <span class="o">/</span> <span class="p">(</span><span class="n">star</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">grid_name</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Make sure a *results* folder exists in co_bandhead_disk_model containing one folder for each star.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="n">fld</span><span class="o">.</span><span class="n">run_grid_log_r</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">inc_deg</span><span class="o">=</span><span class="n">inc_deg</span><span class="p">,</span> <span class="n">stars</span><span class="o">=</span><span class="n">stars</span><span class="p">,</span> <span class="n">dv0</span><span class="o">=</span><span class="n">dv0</span><span class="p">,</span> <span class="n">vupper</span><span class="o">=</span><span class="n">vupper</span><span class="p">,</span> <span class="n">vlower</span><span class="o">=</span><span class="n">vlower</span><span class="p">,</span> <span class="n">nJ</span><span class="o">=</span><span class="n">nJ</span><span class="p">,</span>
+                       <span class="n">dust</span><span class="o">=</span><span class="n">dust</span><span class="p">,</span> <span class="n">sed_best_fit</span><span class="o">=</span><span class="n">sed_best_fit</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">grid_name</span><span class="p">,</span> <span class="n">lisa_it</span><span class="o">=</span><span class="n">thread_no</span><span class="p">,</span> <span class="n">saved_list</span><span class="o">=</span><span class="n">saved_list</span><span class="p">)</span>
+
+    <span class="k">return</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">thread_no</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">thread_no</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">calculate_grid</span><span class="p">(</span><span class="n">thread_no</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

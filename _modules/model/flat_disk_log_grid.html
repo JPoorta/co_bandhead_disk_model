@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.flat_disk_log_grid &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">model package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">model.flat_disk_log_grid</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for model.flat_disk_log_grid</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module containing all the actual model grid calculations. More information can be found in the</span>
+<span class="sd">docstrings and in-code comments.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">fixed_quad</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">fftconvolve</span>
+
+<span class="kn">import</span> <span class="nn">model.config</span> <span class="k">as</span> <span class="nn">cfg</span>
+<span class="kn">import</span> <span class="nn">model.sed_calculations</span> <span class="k">as</span> <span class="nn">seds</span>
+
+
+<div class="viewcode-block" id="create_freq_array_profile_dict">
+<a class="viewcode-back" href="../../model.html#model.flat_disk_log_grid.create_freq_array_profile_dict">[docs]</a>
+<span class="k">def</span> <span class="nf">create_freq_array_profile_dict</span><span class="p">(</span><span class="n">freq_trans</span><span class="p">,</span> <span class="n">dv</span><span class="p">,</span> <span class="n">dv0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create the wavelength array from a regularly (dv) spaced velocity array, and calculate the gaussian line profile</span>
+<span class="sd">    for each transition in frequency space with width(s) dv0.</span>
+
+<span class="sd">    :param freq_trans: Frequency of the transitions in cm**-1.</span>
+<span class="sd">    :param dv: resolution of velocity/wavelength and frequency arrays in cm/s.</span>
+<span class="sd">    :param dv0: list of doppler widths of the lines in cm/s.</span>
+<span class="sd">    :return:</span>
+<span class="sd">        - wavelength array in micron, sorted from low to high and with equal spacing in velocity space.</span>
+<span class="sd">        - Line profile dictionary of `len(freq_trans)` with</span>
+<span class="sd">            - keys: transition in cm^-1;</span>
+<span class="sd">            - values: list of two 2D ``numpy`` arrays: gaussian profiles, and indices on the frequency (and wavelength)</span>
+<span class="sd">              array, both of shape (len(dv0), len(indices)).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="c1"># Create a regularly spaced velocity array (in cm/s) (for convolution with velocity profiles),</span>
+    <span class="c1"># based on maximum and minimum wavelengths. Convert velocities back to wavelengths (micron).</span>
+    <span class="c1"># --------------------------------------------------------------</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">dv</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span>
+
+    <span class="n">min_wvl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="mf">1.e4</span> <span class="o">/</span> <span class="n">freq_trans</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.01</span>
+    <span class="n">max_wvl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(((</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mf">1.e4</span> <span class="o">/</span> <span class="n">freq_trans</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.01</span><span class="p">),</span> <span class="n">cfg</span><span class="o">.</span><span class="n">max_wvl</span><span class="p">))</span>
+    <span class="n">max_vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">min_wvl</span> <span class="o">/</span> <span class="n">max_wvl</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">dv</span>
+    <span class="n">vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_vel</span><span class="p">,</span> <span class="n">dv</span><span class="p">)</span>
+    <span class="n">wvl</span> <span class="o">=</span> <span class="n">min_wvl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vel</span><span class="p">))</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vel</span><span class="p">)))</span>
+
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="c1"># Create a gaussian line profile (in frequency space) for each transition and every line width provided in dv0;</span>
+    <span class="c1"># store in a dictionary.</span>
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="mf">1.e4</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="n">wvl</span>
+    <span class="n">freq_trans_hz</span> <span class="o">=</span> <span class="n">freq_trans</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span>
+
+    <span class="n">profile_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">trans</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">freq_trans_hz</span><span class="p">):</span>
+        <span class="n">vel_array</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">freq</span> <span class="o">/</span> <span class="n">trans</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">vel_array</span> <span class="o">&gt;</span> <span class="o">-</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">vel_array</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">x</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dv0</span><span class="p">])</span>
+        <span class="c1"># Store also the indices on the frequency (wavelength) array.</span>
+        <span class="n">gaussians</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cfg</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">freq</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">trans</span><span class="p">,</span> <span class="n">trans</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">dv0</span><span class="p">)])</span>
+        <span class="n">profile_dict</span><span class="p">[</span><span class="n">freq_trans</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">gaussians</span><span class="p">,</span> <span class="n">indices</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">profile_dict</span></div>
+
+
+
+<div class="viewcode-block" id="co_bandhead">
+<a class="viewcode-back" href="../../model.html#model.flat_disk_log_grid.co_bandhead">[docs]</a>
+<span class="k">def</span> <span class="nf">co_bandhead</span><span class="p">(</span><span class="n">T_gas</span><span class="p">,</span> <span class="n">NCO</span><span class="p">,</span> <span class="n">wave</span><span class="p">,</span> <span class="n">A_einstein</span><span class="p">,</span> <span class="n">jlower</span><span class="p">,</span> <span class="n">jupper</span><span class="p">,</span> <span class="n">freq_trans</span><span class="p">,</span> <span class="n">Elow</span><span class="p">,</span> <span class="n">prof_dict</span><span class="p">,</span> <span class="n">dust</span><span class="p">,</span> <span class="n">dust_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the</span>
+<span class="sd">    dust continuum.</span>
+
+<span class="sd">    :param T_gas: Temperature of the CO gas in function of R.</span>
+<span class="sd">    :type T_gas: 1D array with `len(R)`</span>
+<span class="sd">    :param NCO: Surface number density (in cm^-2) of the CO gas in function of R.</span>
+<span class="sd">    :type NCO: 1D array with `len(R)`</span>
+<span class="sd">    :param wave: wavelength array for which the output is wanted.</span>
+<span class="sd">    :type wave: 1D array</span>
+<span class="sd">    :param A_einstein: Einstein A coefficients of all the transitions.</span>
+<span class="sd">    :type A_einstein: 1D array with `len(freq_trans)`</span>
+<span class="sd">    :param jlower: lower rotational quantum numbers of all the transitions.</span>
+<span class="sd">    :type jlower: 1D array with `len(freq_trans)`</span>
+<span class="sd">    :param jupper: upper rotational quantum numbers of all the transitions.</span>
+<span class="sd">    :type jupper: 1D array with `len(freq_trans)`</span>
+<span class="sd">    :param freq_trans: transition frequencies in cm^-1.</span>
+<span class="sd">    :type freq_trans: 1D array</span>
+<span class="sd">    :param Elow: energies of the lower levels of the transitions in Kelvin.</span>
+<span class="sd">    :type Elow: 1D array with `len(freq_trans)`</span>
+<span class="sd">    :param prof_dict:</span>
+
+<span class="sd">        - keys: transition in cm^-1</span>
+<span class="sd">        - values: gaussian profile, indices on the wavelength array; each an array of the length of dv0.</span>
+<span class="sd">    :type prof_dict: line profile `dictionary`</span>
+<span class="sd">    :param dust: if True dust is included and dust_params has to be provided. If False no continuum is returned.</span>
+<span class="sd">    :type dust: Bool</span>
+<span class="sd">    :param dust_params: H2 surface density and dust temperatures ifo R.</span>
+<span class="sd">    :type dust_param: list of two 1D arrays of `len(R)`: [NH, T_dust]</span>
+<span class="sd">    :return: iff dust == `False`: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave)) and 3D</span>
+<span class="sd">        array of shape `(len(dv0), len(R), len(wave))`.</span>
+
+<span class="sd">        iff dust = `True`: Total source function and opacity for CO+dust; two 3D arrays of shape (len(dv0),len(R),</span>
+<span class="sd">        len(wave)), and opacity and source function for dust; two 2D arrays of shape (len(R),len(wave)).</span>
+<span class="sd">        Total four arrays.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># -----------------------------------------------------------------------------</span>
+    <span class="c1"># Reading of the partition sums and calculation fractional level populations in LTE</span>
+    <span class="c1"># -----------------------------------------------------------------------------</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">T_gas</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">Q_T</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">],</span> <span class="n">cfg</span><span class="o">.</span><span class="n">Q_T</span><span class="p">[</span><span class="s1">&#39;Q&#39;</span><span class="p">])</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">jlower</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">Q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">Elow</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">T_gas</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+
+    <span class="c1"># c**2 is not lacking in this equation! It is incorporated through the units of the transition frequencies.</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">A_einstein</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="p">(</span><span class="mf">8.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">freq_trans</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> \
+            <span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">jupper</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">jlower</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">*</span> \
+            <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">freq_trans</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">kB</span> <span class="o">/</span> <span class="n">T_gas</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]))</span> <span class="o">*</span> <span class="n">x</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">prof_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">freq_trans</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">T_gas</span><span class="p">),</span>
+                      <span class="nb">len</span><span class="p">(</span><span class="n">wave</span><span class="p">)))</span>  <span class="c1"># tau_CO = alpha * NCO (alpha is CO optical depth per particle)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lines</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">gauss</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">prof_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">freq_trans</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gauss</span><span class="p">)):</span>
+            <span class="n">alpha</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">lines</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">][</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">gauss</span><span class="p">[</span><span class="n">j</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]</span>
+
+    <span class="n">tau_CO</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">NCO</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># optical depth of CO/gas</span>
+
+    <span class="c1"># Source function gas in erg/s/cm^2/sr/micron</span>
+    <span class="n">BB_CO</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">planck_wvl</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="mf">1.e4</span><span class="p">,</span> <span class="n">T_gas</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dust</span><span class="p">:</span>
+
+        <span class="k">return</span> <span class="n">BB_CO</span><span class="p">,</span> <span class="n">tau_CO</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">NH</span><span class="p">,</span> <span class="n">T_dust</span> <span class="o">=</span> <span class="n">dust_params</span>
+
+        <span class="n">tau_cont_wsil</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">radg</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">Qabs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">*</span> <span class="n">NH</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> \
+                        <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mass_proton</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mass_grain</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">gas_to_solid</span>
+        <span class="n">tau_cont</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">wsil</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tau_cont_wsil</span><span class="p">[</span><span class="n">nh</span><span class="p">,</span> <span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">nh</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">NH</span><span class="p">))])</span>
+        <span class="c1"># Source function dust erg/s/cm^2/sr/micron</span>
+        <span class="n">BB_dust</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">planck_wvl</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="mf">1.e4</span><span class="p">,</span> <span class="n">T_dust</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="c1"># Total optical depth</span>
+        <span class="n">tau_tot</span> <span class="o">=</span> <span class="n">tau_CO</span> <span class="o">+</span> <span class="n">tau_cont</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="c1"># Total source function erg/s/cm^2/sr/micron</span>
+        <span class="n">S_tot</span> <span class="o">=</span> <span class="p">(</span><span class="n">tau_CO</span> <span class="o">*</span> <span class="n">BB_CO</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">tau_cont</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">BB_dust</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span> <span class="o">/</span> <span class="n">tau_tot</span>
+
+        <span class="k">return</span> <span class="n">S_tot</span><span class="p">,</span> <span class="n">tau_tot</span><span class="p">,</span> <span class="n">tau_cont</span><span class="p">,</span> <span class="n">BB_dust</span></div>
+
+
+
+<div class="viewcode-block" id="calculate_flux">
+<a class="viewcode-back" href="../../model.html#model.flat_disk_log_grid.calculate_flux">[docs]</a>
+<span class="k">def</span> <span class="nf">calculate_flux</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">convolve</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">int_theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dF</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the slab model flux (in erg/s/cm^2/micron) of a thin disk from source function and opacity per ring (R).</span>
+<span class="sd">    Before integrating over R (optionally) convolve with velocity profiles using int_theta.</span>
+
+<span class="sd">    :param S: source function (erg/s/cm^2/sr/micron) in function of wvl and R (2D array of shape (len(R),len(wvl)),</span>
+<span class="sd">        sometimes provided for multiple dv0 (if S_tot) in which case 3D array of shape (len(dv0),len(R),len(wvl).</span>
+<span class="sd">    :param tau: opacity in function of wvl and R (3D array of shape (len(dv0),len(R),len(wvl)).</span>
+<span class="sd">    :param i: inclination in radians.</span>
+<span class="sd">    :param R: radial distances (from the stellar surface) of the rings (in cm) (1D array).</span>
+<span class="sd">    :param wvl: wavelength array in micron, equally spaced in velocity (see create_freq_array_profile_dict) Used to</span>
+<span class="sd">            calculate the flux per ring (integration over wvl - dF).</span>
+<span class="sd">    :param convolve: if True intensities will be convolved with a velocity profile provided through int_theta.</span>
+<span class="sd">    :param int_theta: (2D array of shape (len(R), len(vel_Kep)) where vel_Kep represents an array of Keplerian</span>
+<span class="sd">            velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,</span>
+<span class="sd">            2 pi) for each radius (units (cm/s)^-1).</span>
+<span class="sd">    :param dv: velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).</span>
+<span class="sd">    :param dF: (boolean) if True calculate flux per ring.</span>
+<span class="sd">    :return: flux in erg/s/cm^2/micron and dF/dR: wavelength integrated flux per ring in erg/s/cm^2/cm.</span>
+<span class="sd">            (Two 1D arrays with len(wvl).)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Intensity (optionally) convolved with velocity profile (int_theta).</span>
+    <span class="k">if</span> <span class="n">S</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">intensity</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tau</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="n">S</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">intensity</span> <span class="o">=</span> <span class="n">S</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tau</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">convolve</span><span class="p">:</span>
+        <span class="n">intensity_conv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">intensity</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">intensity</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">intensity_conv</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fftconvolve</span><span class="p">(</span><span class="n">intensity</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">int_theta</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">dv</span>
+                                               <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">intensity_conv</span> <span class="o">=</span> <span class="n">intensity</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+    <span class="c1"># Flux and differential of the flux.</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">intensity_conv</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">R</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">d</span> <span class="o">**</span> <span class="mi">2</span>
+                     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">intensity</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+    <span class="k">if</span> <span class="n">dF</span><span class="p">:</span>
+        <span class="n">dF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">intensity_conv</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">d</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">intensity</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+
+    <span class="k">return</span> <span class="n">flux</span><span class="p">,</span> <span class="n">dF</span></div>
+
+
+
+<div class="viewcode-block" id="instrumental_profile">
+<a class="viewcode-back" href="../../model.html#model.flat_disk_log_grid.instrumental_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">instrumental_profile</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">vupper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vlower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">center_wvl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates instrumental profile for convolution to compare with observations. The units of the instrumental</span>
+<span class="sd">    profile are micron^-1; the convolution product should be multiplied by dx to approximate continuous convolution.</span>
+
+<span class="sd">    :param wvl: wavelength array that goes with the flux, in micron.</span>
+<span class="sd">    :param res: spectral resolution R of the observation.</span>
+<span class="sd">    :param vupper: array of upper vibrational quantum numbers. (optional, should be provided if no center_wvl is given)</span>
+<span class="sd">    :param vlower: array of lower vibrational quantum numbers. (optional, should be provided if no center_wvl is given)</span>
+<span class="sd">    :param center_wvl: reference wavelength for resolution and pivot point for convolution (0-point velocity).</span>
+<span class="sd">            (optional, but either this or vupper and vlower should be provided).</span>
+<span class="sd">    :return: a gaussian profile (in micron^-1) and the wavelength step dx in micron.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Wavelength of onset of the bandhead in micron.</span>
+    <span class="k">if</span> <span class="n">center_wvl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="n">center_wvl</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">cfg</span><span class="o">.</span><span class="n">onset_wvl_dict</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">vu</span><span class="p">,</span> <span class="n">vl</span><span class="p">))</span> <span class="k">for</span> <span class="n">vu</span><span class="p">,</span> <span class="n">vl</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vupper</span><span class="p">,</span> <span class="n">vlower</span><span class="p">)])</span>
+
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">center</span> <span class="o">/</span> <span class="n">res</span>  <span class="c1"># sigma in micron</span>
+    <span class="c1"># Wavelengths in micron within 5 sigma.</span>
+    <span class="n">wvl_ip</span> <span class="o">=</span> <span class="n">wvl</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">wvl</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)]</span>
+    <span class="n">ip</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">wvl_ip</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>  <span class="c1"># gaussian centered around w0 (in micron^-1)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">wvl_ip</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">wvl_ip</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">ip</span><span class="p">,</span> <span class="n">dx</span></div>
+
+
+
+<div class="viewcode-block" id="run_grid_log_r">
+<a class="viewcode-back" href="../../model.html#model.flat_disk_log_grid.run_grid_log_r">[docs]</a>
+<span class="k">def</span> <span class="nf">run_grid_log_r</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">inc_deg</span><span class="p">,</span> <span class="n">stars</span><span class="p">,</span> <span class="n">dv0</span><span class="p">,</span> <span class="n">vupper</span><span class="p">,</span> <span class="n">vlower</span><span class="p">,</span> <span class="n">nJ</span><span class="p">,</span> <span class="n">dust</span><span class="p">,</span> <span class="n">sed_best_fit</span><span class="p">,</span> <span class="n">num_CO</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                   <span class="n">num_dust</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">Rmin_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Rmax_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">print_Rs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">convolve</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">maxmin</span><span class="o">=</span><span class="p">(</span><span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">),</span> <span class="n">lisa_it</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">saved_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.</span>
+<span class="sd">    For a test run use scalar values in the grid and for dv0, and set convolve = True.</span>
+
+<span class="sd">    :param grid: grid with 5 variables, created as follows by np.meshgrid:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            tiv, pv, niv, qv, riv = np.meshgrid(Ti, p, Ni, q, Ri,sparse=False)</span>
+<span class="sd">            grid = [tiv, pv, niv, qv, riv]</span>
+
+<span class="sd">        With Ti, p, Ni, q, Ri arrays or scalars:</span>
+
+<span class="sd">         - Ti: initial CO gas temperature  at Ri (in K).</span>
+<span class="sd">         - p: power law exponent for the gas temperature (p&lt;0).</span>
+<span class="sd">         - Ni: initial gas (H2) surface density at Ri (in cm^-2).</span>
+<span class="sd">         - q: power law exponent for the gas surface density (q&lt;0).</span>
+<span class="sd">         - Ri: initial radius for the powerlaws for the CO gas disk (in stellar radii R*).</span>
+<span class="sd">    :param inc_deg: array of inclination(s) in degrees. This can only contain values from [10,20,30,40,50,60,70,80]</span>
+<span class="sd">    :param stars: array of string(s) with the object names.</span>
+<span class="sd">    :param dv0: (scalar or array) doppler width of the lines in km/s. If array, for each element the bandheads</span>
+<span class="sd">        are calculated and (if relevant) saved in separate files with corresponding filenames.</span>
+<span class="sd">    :param vupper: list of upper level(s) of the vibrational transition(s).</span>
+<span class="sd">    :param vlower: list of lower level(s) of the vibrational transition(s).</span>
+<span class="sd">    :param nJ: number of rotational transitions to be taken into account.</span>
+<span class="sd">    :param dust: boolean. If True dust is included. If False the continuum is assumed to be stellar only.</span>
+<span class="sd">    :param sed_best_fit: boolean.</span>
+<span class="sd">        - If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are adopted</span>
+<span class="sd">        (including inclination).</span>
+<span class="sd">        - If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the continuum.</span>
+<span class="sd">        - If dust = False this parameter is ignored.</span>
+<span class="sd">    :param num_CO: (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)</span>
+<span class="sd">    :param num_dust: (optional) integer specifying amount of radial points for the dust disk. (default = 200)</span>
+<span class="sd">    :param Rmin_in: (optional) initial radius for the CO gas disk (in stellar radii R*). If not provided defaults to Ri.</span>
+<span class="sd">    :param Rmax_in: (optional) outer radius for the CO gas disk (in stellar radii R*). If not provided defaults</span>
+<span class="sd">            to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different</span>
+<span class="sd">            per grid point).</span>
+<span class="sd">    :param print_Rs: (optional) boolean. If True information on the radial arrays is printed. (default = False)</span>
+<span class="sd">    :param convolve: (optional) boolean. If True the fluxes are convolved with the instrumental profile and</span>
+<span class="sd">            returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes are</span>
+<span class="sd">            saved regardless of the value of save. (default = False)</span>
+<span class="sd">    :param save: (optional) string specifying the name of the folder where the normalized bandheads and the wavelength</span>
+<span class="sd">            array are to be saved. If not provided, nothing is saved. (default = None)</span>
+<span class="sd">    :param maxmin: (optional) tuple (max, min). The maximum and minimum values maximum normalized flux points can take.</span>
+<span class="sd">            If the maximum of the normalized flux is higher than max or lower than min the model is not saved, even if</span>
+<span class="sd">            save is true.</span>
+<span class="sd">    :param lisa_it: (int (from 0 to 15) or None) refers to the thread number when the code is run on 16 parallel cores</span>
+<span class="sd">            in LISA. If used, the grid is divided into 16 equal parts, and the part with this thread number is run.</span>
+<span class="sd">            If this parameter is set to None, the full grid for all objects will be calculated serially.</span>
+<span class="sd">    :param saved_list: (optional) string, specifying the filename extension (in folder aux_files, and beginning with a</span>
+<span class="sd">            star name) which contains a list of filenames of the models that need to be calculated (all other models</span>
+<span class="sd">            will be skipped!). To be used if large parts of the parameter space in a grid are models that don&#39;t get</span>
+<span class="sd">            saved anyway as for e.g. low (&lt;0.5) p values.</span>
+<span class="sd">    :return: the wavelength array and a 2D array containing the normalized fluxes for each inclination and</span>
+<span class="sd">            the last gridpoint in grid.</span>
+
+<span class="sd">            If convolve is `True`: the wavelength array, total extincted flux, normalized flux, convolved total flux</span>
+<span class="sd">            and convolved normalized flux are returned for the first gridpoint and first inclination.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Time the duration.</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="c1"># Select relevant levels and sort according to frequency (from high to low)</span>
+    <span class="c1"># --------------------------------------------------------------</span>
+
+    <span class="n">max_freq</span> <span class="o">=</span> <span class="mf">1.e4</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">max_wvl</span>  <span class="c1"># micron to cm^-1</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">freq_tr</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">vu</span><span class="p">,</span> <span class="n">vl</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vupper</span><span class="p">,</span> <span class="n">vlower</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">vhigh</span> <span class="o">==</span> <span class="n">vu</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">vlow</span> <span class="o">==</span> <span class="n">vl</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">jh</span> <span class="o">&lt;=</span> <span class="n">nJ</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">jl_all</span> <span class="o">&lt;=</span> <span class="n">nJ</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">freq_tr</span> <span class="o">&gt;=</span> <span class="n">max_freq</span><span class="p">))</span>
+
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">((</span><span class="n">cfg</span><span class="o">.</span><span class="n">freq_tr</span><span class="p">[</span><span class="n">mask</span><span class="p">]))</span>
+    <span class="n">vl</span><span class="p">,</span> <span class="n">jlower</span><span class="p">,</span> <span class="n">vh</span><span class="p">,</span> <span class="n">jupper</span><span class="p">,</span> <span class="n">A_einstein</span><span class="p">,</span> <span class="n">Elow</span><span class="p">,</span> <span class="n">freq_trans</span> <span class="o">=</span> \
+        <span class="p">[(</span><span class="n">a</span><span class="p">[</span><span class="n">mask</span><span class="p">][</span><span class="n">ind</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cfg</span><span class="o">.</span><span class="n">vlow</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">jl_all</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">vhigh</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">jh</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">El_all</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">freq_tr</span><span class="p">]]</span>
+
+    <span class="c1"># ---------------------------------------------------------</span>
+    <span class="c1"># Unit conversions</span>
+    <span class="c1"># ---------------------------------------------------------</span>
+    <span class="c1"># velocity in cm/s for construction of gaussian line profiles, convert input to a list</span>
+    <span class="n">dv0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dv0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.e5</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">dv0</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+        <span class="n">dv0_cm</span> <span class="o">=</span> <span class="p">[</span><span class="n">dv0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dv0_cm</span> <span class="o">=</span> <span class="n">dv0</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="n">dv</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">min_dv_cm</span>  <span class="c1"># velocity resolution in cm/s</span>
+    <span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">inc_deg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>  <span class="c1"># inclination from degrees to radians</span>
+
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="c1"># Calculation of the velocity and wavelength arrays (vel, wvl) and gaussian line profiles.</span>
+    <span class="c1"># Reading the object wavelength array.</span>
+    <span class="c1"># --------------------------------------------------------------</span>
+
+    <span class="n">wvl</span><span class="p">,</span> <span class="n">profile_dict</span> <span class="o">=</span> <span class="n">create_freq_array_profile_dict</span><span class="p">(</span><span class="n">freq_trans</span><span class="p">,</span> <span class="n">dv</span><span class="p">,</span> <span class="n">dv0_cm</span><span class="p">)</span>
+    <span class="n">obj_wvl_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">obj_wvl_array</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------------------------------------------</span>
+    <span class="c1"># ITERATIONS OVER THE OBJECTS.</span>
+    <span class="c1"># --------------------------------------------------------------</span>
+
+    <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">stars</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">saved_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">to_be_calculated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">aux_files</span> <span class="o">+</span> <span class="n">st</span> <span class="o">+</span> <span class="n">saved_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># --------------------------------------------------------------</span>
+        <span class="c1"># Folder for saving.</span>
+        <span class="c1"># --------------------------------------------------------------</span>
+        <span class="k">if</span> <span class="n">save</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">folder</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">results_folder</span> <span class="o">/</span> <span class="n">st</span> <span class="o">/</span> <span class="n">save</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">/</span> <span class="s2">&quot;wvl_re&quot;</span><span class="p">,</span> <span class="n">wvl</span><span class="p">)</span>
+
+        <span class="c1"># --------------------------------------------------------------</span>
+        <span class="c1"># Get stellar parameters.</span>
+        <span class="c1"># --------------------------------------------------------------</span>
+
+        <span class="n">Mstar</span><span class="p">,</span> <span class="n">T_eff</span><span class="p">,</span> <span class="n">log_g</span><span class="p">,</span> <span class="n">Rstar</span><span class="p">,</span> <span class="n">Res</span><span class="p">,</span> <span class="n">SNR</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">RV</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">stel_parameter_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+        <span class="n">best_fit</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">best_dust_fit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+        <span class="n">Ri_d</span> <span class="o">=</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span>
+
+        <span class="c1"># --------------------------------------------------------------</span>
+        <span class="c1"># Best dust fit parameters (iff dust = True) and continuum fluxes for different cases.</span>
+        <span class="c1"># --------------------------------------------------------------</span>
+
+        <span class="k">if</span> <span class="n">dust</span><span class="p">:</span>
+            <span class="c1"># 0 modelname, 1 Ti_d, 2 p_d, 3 Ni_d, 4 q_d, 5 i_d, 6 Ri_d_AU, gas_mass, chi_sq, chi_sq_red</span>
+            <span class="n">inc_dust_dict</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">load_inc_dust_dict</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">inc_deg</span><span class="p">:</span>
+                <span class="n">fit</span> <span class="o">=</span> <span class="n">inc_dust_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">element</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">flux_cont</span> <span class="o">=</span> <span class="n">seds</span><span class="o">.</span><span class="n">SED_full</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                          <span class="n">st</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">wvl</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span> <span class="n">num_r</span><span class="o">=</span><span class="n">num_dust</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+                <span class="n">inc_dust_dict</span><span class="p">[</span><span class="n">element</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="n">flux_cont</span><span class="p">)</span>
+
+            <span class="n">best_fit_cont</span> <span class="o">=</span> <span class="n">seds</span><span class="o">.</span><span class="n">SED_full</span><span class="p">(</span><span class="n">best_fit</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">best_fit</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                          <span class="n">st</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">wvl</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span> <span class="n">num_r</span><span class="o">=</span><span class="n">num_dust</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">sed_best_fit</span><span class="p">:</span>
+                <span class="n">flux_cont_tot</span> <span class="o">=</span> <span class="n">best_fit_cont</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">dust</span><span class="p">:</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1"># No dust: Only stellar continuum.</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+
+            <span class="n">flux_cont_tot</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">stellar_cont</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">wvl</span><span class="p">)</span>
+
+        <span class="c1"># --------------------------------------------------------------</span>
+        <span class="c1"># ITERATIONS OVER THE GRID.</span>
+        <span class="c1"># --------------------------------------------------------------</span>
+
+        <span class="n">it</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nditer</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;ranged&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">lisa_it</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk_size</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divmod</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nditer</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span><span class="o">.</span><span class="n">itersize</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lisa_it</span> <span class="o">==</span> <span class="mi">15</span><span class="p">:</span>
+                <span class="n">it</span><span class="o">.</span><span class="n">iterrange</span> <span class="o">=</span> <span class="p">(</span><span class="n">lisa_it</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="p">(</span><span class="n">lisa_it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="o">+</span> <span class="n">rest</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">it</span><span class="o">.</span><span class="n">iterrange</span> <span class="o">=</span> <span class="p">(</span><span class="n">lisa_it</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="p">(</span><span class="n">lisa_it</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+
+            <span class="c1"># ---------------------------------------------------------</span>
+            <span class="c1"># Extract the disk parameters.</span>
+            <span class="c1"># ---------------------------------------------------------</span>
+            <span class="n">ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ri_R</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">ti</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ti</span> <span class="o">=</span> <span class="n">T_eff</span>
+            <span class="c1"># ---------------------------------------------------------</span>
+            <span class="c1"># Creation of the radial arrays.</span>
+            <span class="c1"># ---------------------------------------------------------</span>
+            <span class="n">ri</span> <span class="o">=</span> <span class="n">ri_R</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">R_sun</span> <span class="o">*</span> <span class="n">Rstar</span>
+
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filename_co_grid_point</span><span class="p">(</span><span class="n">ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ri_R</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">saved_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">([</span><span class="n">filename</span> <span class="o">==</span> <span class="n">listed</span> <span class="k">for</span> <span class="n">listed</span> <span class="ow">in</span> <span class="n">to_be_calculated</span><span class="p">]):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot; skip&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">Rmax_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">Rmax</span> <span class="o">=</span> <span class="n">Rmax_in</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">R_sun</span> <span class="o">*</span> <span class="n">Rstar</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Rmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(((</span><span class="n">cfg</span><span class="o">.</span><span class="n">min_T_gas</span> <span class="o">/</span> <span class="n">ti</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="n">ri</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_max_def</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">Rmin_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">Rmin</span> <span class="o">=</span> <span class="n">Rmin_in</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">R_sun</span> <span class="o">*</span> <span class="n">Rstar</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Rmin</span> <span class="o">=</span> <span class="n">ri</span>
+
+            <span class="n">R_CO</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">Rmin</span><span class="p">,</span> <span class="n">Rmax</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">num_CO</span><span class="p">)</span>
+            <span class="n">CO_only</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_CO</span> <span class="o">&lt;</span> <span class="n">Ri_d</span><span class="p">)</span>
+            <span class="n">R_dust</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">Ri_d</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_max_def</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">num_dust</span><span class="p">)</span>
+            <span class="n">mix</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_dust</span> <span class="o">&lt;=</span> <span class="n">R_CO</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">dust_in_gas</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">R_CO</span><span class="p">,</span> <span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">])</span>
+            <span class="n">gas_only_exist</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1"># Create velocity array for velocity profiles per ring.</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+
+            <span class="n">max_Kep</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">v_kep_cm_s</span><span class="p">(</span><span class="n">Mstar</span><span class="p">,</span> <span class="n">Rmin</span><span class="p">)</span>
+            <span class="n">nv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">max_Kep</span> <span class="o">/</span> <span class="n">dv</span><span class="p">))</span> <span class="o">+</span> <span class="mi">100</span>
+            <span class="n">vel_Kep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">nv</span><span class="p">,</span> <span class="n">nv</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">*</span> <span class="n">dv</span>
+
+            <span class="c1"># ---------------------------------------------------------</span>
+            <span class="c1"># Print information about radial arrays (if so wished).</span>
+            <span class="c1"># ---------------------------------------------------------</span>
+
+            <span class="k">if</span> <span class="n">print_Rs</span><span class="p">:</span>
+                <span class="n">to_print</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> R_max = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">((</span><span class="n">R_CO</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; AU&#39;</span> \
+                           <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> R = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">R_CO</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; AU, &#39;</span> \
+                           <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> length R_CO =&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">]))</span> \
+                           <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> length R_CO_dust =&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">]))</span> \
+                           <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1"> length R_dust[~mix] =&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="o">~</span><span class="n">mix</span><span class="p">]))</span> \
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> length wvl = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wvl</span><span class="p">))</span>
+
+                <span class="nb">print</span><span class="p">(</span><span class="n">to_print</span><span class="p">)</span>
+
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1"># Gas temperature, density, opacities and source function where there is only gas.</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="k">if</span> <span class="n">gas_only_exist</span><span class="p">:</span>
+                <span class="n">T_gas</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">t_ex</span><span class="p">(</span><span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">],</span> <span class="n">ti</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="n">NCO</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">nco</span><span class="p">(</span><span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">],</span> <span class="n">ni</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+                <span class="n">S_CO</span><span class="p">,</span> <span class="n">tau_CO</span> <span class="o">=</span> <span class="n">co_bandhead</span><span class="p">(</span><span class="n">T_gas</span><span class="o">=</span><span class="n">T_gas</span><span class="p">,</span> <span class="n">NCO</span><span class="o">=</span><span class="n">NCO</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span>
+                                           <span class="n">A_einstein</span><span class="o">=</span><span class="n">A_einstein</span><span class="p">,</span> <span class="n">jlower</span><span class="o">=</span><span class="n">jlower</span><span class="p">,</span> <span class="n">jupper</span><span class="o">=</span><span class="n">jupper</span><span class="p">,</span>
+                                           <span class="n">freq_trans</span><span class="o">=</span><span class="n">freq_trans</span><span class="p">,</span> <span class="n">Elow</span><span class="o">=</span><span class="n">Elow</span><span class="p">,</span>
+                                           <span class="n">prof_dict</span><span class="o">=</span><span class="n">profile_dict</span><span class="p">,</span> <span class="n">dust</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">R_CO_only</span> <span class="o">=</span> <span class="n">R_CO</span><span class="p">[</span><span class="n">CO_only</span><span class="p">]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flux_CO</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wvl</span><span class="p">))</span>
+
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1">#</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dust_in_gas</span> <span class="ow">and</span> <span class="n">dust</span><span class="p">:</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="c1"># Dust is included and gas and dust are separate.</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+
+                <span class="c1"># Continuum flux (not extincted).</span>
+                <span class="n">flux_cont_tot</span> <span class="o">=</span> <span class="n">best_fit_cont</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dust</span> <span class="ow">and</span> <span class="n">dust_in_gas</span><span class="p">:</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="c1"># Dust is *not* included, but the calculated S_CO does not cover the entire CO disk.</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+
+                <span class="c1"># Gas temperature, density, opacities and source function in whole disk.</span>
+                <span class="c1"># Continuum flux was calculated earlier.</span>
+                <span class="n">T_gas</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">t_ex</span><span class="p">(</span><span class="n">R_CO</span><span class="p">,</span> <span class="n">ti</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="n">NCO</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">nco</span><span class="p">(</span><span class="n">R_CO</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+                <span class="n">S_CO</span><span class="p">,</span> <span class="n">tau_CO</span> <span class="o">=</span> <span class="n">co_bandhead</span><span class="p">(</span><span class="n">T_gas</span><span class="o">=</span><span class="n">T_gas</span><span class="p">,</span> <span class="n">NCO</span><span class="o">=</span><span class="n">NCO</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span> <span class="n">A_einstein</span><span class="o">=</span><span class="n">A_einstein</span><span class="p">,</span>
+                                           <span class="n">jlower</span><span class="o">=</span><span class="n">jlower</span><span class="p">,</span> <span class="n">jupper</span><span class="o">=</span><span class="n">jupper</span><span class="p">,</span> <span class="n">freq_trans</span><span class="o">=</span><span class="n">freq_trans</span><span class="p">,</span> <span class="n">Elow</span><span class="o">=</span><span class="n">Elow</span><span class="p">,</span>
+                                           <span class="n">prof_dict</span><span class="o">=</span><span class="n">profile_dict</span><span class="p">,</span> <span class="n">dust</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="n">R_CO_only</span> <span class="o">=</span> <span class="n">R_CO</span>
+                <span class="n">gas_only_exist</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1"># ITERATIONS OVER INCLINATION.</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="n">to_save</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">dv0_cm</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inc</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj_wvl_arr</span><span class="p">)))</span>
+            <span class="n">all_in_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">dv0_cm</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inc</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inc</span><span class="p">):</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="c1"># CO flux where there is only gas.</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="k">if</span> <span class="n">gas_only_exist</span><span class="p">:</span>
+                    <span class="c1"># Integrate over all angles to get velocity profile for convolution.</span>
+                    <span class="n">int_theta_CO</span> <span class="o">=</span> <span class="n">fixed_quad</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">integrand_gauss</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                              <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">vel_Kep</span><span class="p">,</span> <span class="n">R_CO_only</span><span class="p">,</span> <span class="n">Mstar</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">n</span><span class="o">=</span><span class="mi">100</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="c1"># CO flux where there is only gas.</span>
+                    <span class="n">flux_CO</span><span class="p">,</span> <span class="n">dF_CO</span> <span class="o">=</span> <span class="n">calculate_flux</span><span class="p">(</span><span class="n">S_CO</span><span class="p">,</span> <span class="n">tau_CO</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">R_CO_only</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span>
+                                                    <span class="n">convolve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">int_theta</span><span class="o">=</span><span class="n">int_theta_CO</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="n">dv</span><span class="p">)</span>
+
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="c1"># Total fluxes for different cases.</span>
+                <span class="c1"># --------------------------------------------------------------</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">dust</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">dust_in_gas</span><span class="p">:</span>
+                    <span class="c1"># --------------------------------------------------------------</span>
+                    <span class="c1"># Dust is not included or there is no overlap or both.</span>
+                    <span class="c1"># --------------------------------------------------------------</span>
+                    <span class="n">flux_tot</span> <span class="o">=</span> <span class="n">flux_cont_tot</span> <span class="o">+</span> <span class="n">flux_CO</span>
+
+                <span class="k">elif</span> <span class="n">dust</span> <span class="ow">and</span> <span class="n">dust_in_gas</span><span class="p">:</span>
+                    <span class="c1"># --------------------------------------------------------------</span>
+                    <span class="c1"># Dust is included, and gas and dust overlap. Flux_mix has to be calculated.</span>
+                    <span class="c1"># --------------------------------------------------------------</span>
+
+                    <span class="c1"># Find the best dust fit for this inclination.</span>
+                    <span class="n">modelname</span><span class="p">,</span> <span class="n">Ti_d</span><span class="p">,</span> <span class="n">p_d</span><span class="p">,</span> <span class="n">Ni_d</span><span class="p">,</span> <span class="n">q_d</span><span class="p">,</span> <span class="n">i_d</span><span class="p">,</span> <span class="n">Ri_d_AU</span><span class="p">,</span> <span class="n">gas_mass</span><span class="p">,</span> <span class="n">chi_sq</span><span class="p">,</span> <span class="n">chi_sq_red</span> <span class="o">=</span> <span class="n">inc_dust_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="n">inc_deg</span><span class="p">[</span><span class="n">j</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Temperatures, densities and source function for parts where gas and dust overlap.</span>
+                    <span class="c1"># (The dust has its own parameters, independent of the gas, dependent on the inclination.)</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+
+                    <span class="n">T_gas_mix</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">t_ex</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">ti</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                    <span class="n">NCO_mix</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">nco</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">ni</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+                    <span class="n">NH</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">nco</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">Ni_d</span><span class="p">,</span> <span class="n">Ri_d</span><span class="p">,</span> <span class="n">q_d</span><span class="p">)</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">H_CO</span>
+                    <span class="n">T_dust</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">t_ex</span><span class="p">(</span><span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">Ti_d</span><span class="p">,</span> <span class="n">Ri_d</span><span class="p">,</span> <span class="n">p_d</span><span class="p">)</span>
+
+                    <span class="n">S_mix</span><span class="p">,</span> <span class="n">tau_mix</span><span class="p">,</span> <span class="n">tau_cont</span><span class="p">,</span> <span class="n">BB_dust</span> <span class="o">=</span> <span class="n">co_bandhead</span><span class="p">(</span><span class="n">T_gas</span><span class="o">=</span><span class="n">T_gas_mix</span><span class="p">,</span> <span class="n">NCO</span><span class="o">=</span><span class="n">NCO_mix</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="n">wvl</span><span class="p">,</span>
+                                                                    <span class="n">A_einstein</span><span class="o">=</span><span class="n">A_einstein</span><span class="p">,</span> <span class="n">jlower</span><span class="o">=</span><span class="n">jlower</span><span class="p">,</span> <span class="n">jupper</span><span class="o">=</span><span class="n">jupper</span><span class="p">,</span>
+                                                                    <span class="n">freq_trans</span><span class="o">=</span><span class="n">freq_trans</span><span class="p">,</span> <span class="n">Elow</span><span class="o">=</span><span class="n">Elow</span><span class="p">,</span>
+                                                                    <span class="n">prof_dict</span><span class="o">=</span><span class="n">profile_dict</span><span class="p">,</span>
+                                                                    <span class="n">dust</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dust_params</span><span class="o">=</span><span class="p">[</span><span class="n">NH</span><span class="p">,</span> <span class="n">T_dust</span><span class="p">])</span>
+
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Dust continuum from part where gas and dust overlap.</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="n">flux_dust</span><span class="p">,</span> <span class="n">dF_flux_dust</span> <span class="o">=</span> <span class="n">calculate_flux</span><span class="p">(</span><span class="n">BB_dust</span><span class="p">,</span> <span class="n">tau_cont</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">wvl</span><span class="p">)</span>
+
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Total continuum if inclination dependent.</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">sed_best_fit</span><span class="p">:</span>
+                        <span class="n">flux_cont_tot</span> <span class="o">=</span> <span class="n">inc_dust_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">inc_deg</span><span class="p">[</span><span class="n">j</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Total flux from of part where gas and dust overlap.</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+
+                    <span class="c1"># Integrate over all angles to get velocity profile for convolution.</span>
+                    <span class="n">int_theta_dust</span> <span class="o">=</span> <span class="n">fixed_quad</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">integrand_gauss</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">vel_Kep</span><span class="p">,</span> <span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">Mstar</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">n</span><span class="o">=</span><span class="mi">100</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="n">flux_mix</span><span class="p">,</span> <span class="n">dF_mix</span> <span class="o">=</span> <span class="n">calculate_flux</span><span class="p">(</span><span class="n">S_mix</span><span class="p">,</span> <span class="n">tau_mix</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">R_dust</span><span class="p">[</span><span class="n">mix</span><span class="p">],</span> <span class="n">wvl</span><span class="p">,</span>
+                                                      <span class="n">convolve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">int_theta</span><span class="o">=</span><span class="n">int_theta_dust</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="n">dv</span><span class="p">)</span>
+
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Total flux of all parts before extinction.</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+
+                    <span class="n">flux_tot</span> <span class="o">=</span> <span class="n">flux_CO</span> <span class="o">+</span> <span class="n">flux_mix</span> <span class="o">+</span> <span class="n">flux_cont_tot</span> <span class="o">-</span> <span class="n">flux_dust</span>
+
+                <span class="c1"># ---------------------------------------------------------</span>
+                <span class="c1"># Total fluxes after extinction and normalize.</span>
+                <span class="c1"># ---------------------------------------------------------</span>
+
+                <span class="n">flux_norm</span> <span class="o">=</span> <span class="n">flux_tot</span> <span class="o">/</span> <span class="n">flux_cont_tot</span>
+
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dv0_cm</span><span class="p">)):</span>
+                    <span class="n">flux_norm_intp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">obj_wvl_arr</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">flux_norm</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                    <span class="n">to_save</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">flux_norm_intp</span>
+                    <span class="n">flux_norm_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">flux_norm_intp</span><span class="p">)</span>
+                    <span class="n">all_in_norm</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">maxmin</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">flux_norm_max</span> <span class="o">&gt;</span> <span class="n">maxmin</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">convolve</span><span class="p">:</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="c1"># Convolution with the instrumental profile. Fluxes in erg/s/cm^2/micron.</span>
+                    <span class="c1"># ---------------------------------------------------------</span>
+                    <span class="n">flux_tot_ext</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">flux_ext</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">flux_tot</span><span class="p">),</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">)</span>
+                    <span class="n">flux_cont_tot_ext</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">flux_ext</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">flux_cont_tot</span><span class="p">),</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">)</span>
+                    <span class="n">flux_norm_ext</span> <span class="o">=</span> <span class="n">flux_tot_ext</span> <span class="o">/</span> <span class="n">flux_cont_tot_ext</span>
+
+                    <span class="n">ip</span><span class="p">,</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">instrumental_profile</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">Res</span><span class="p">,</span> <span class="n">vupper</span><span class="o">=</span><span class="n">vupper</span><span class="p">,</span> <span class="n">vlower</span><span class="o">=</span><span class="n">vlower</span><span class="p">)</span>
+                    <span class="n">obs_flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">flux_tot_ext</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span>
+                    <span class="n">obs_flux_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">flux_norm_ext</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span>
+
+                    <span class="c1"># Time the duration.</span>
+                    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+                    <span class="n">runtime</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> runtime grid = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">((</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">//</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; min &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">%</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; sec&quot;</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span>
+
+                    <span class="k">return</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">flux_tot_ext</span><span class="p">,</span> <span class="n">flux_norm_ext</span><span class="p">,</span> <span class="n">flux_norm_intp</span><span class="p">,</span> <span class="n">obs_flux</span><span class="p">,</span> <span class="n">obs_flux_norm</span>
+
+            <span class="k">if</span> <span class="n">save</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+                <span class="n">out_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">folder</span> <span class="o">/</span> <span class="s2">&quot;out.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dv0_cm</span><span class="p">):</span>
+
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filename_co_grid_point</span><span class="p">(</span><span class="n">ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ri_R</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="n">element</span> <span class="o">/</span> <span class="mf">1.e5</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="kc">True</span> <span class="ow">in</span> <span class="n">all_in_norm</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:]:</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">/</span> <span class="n">filename</span><span class="p">,</span> <span class="n">to_save</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+                        <span class="n">out_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">st</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot; saved. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot; saved.&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">out_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">st</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot; discarded. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot; discarded.&quot;</span><span class="p">)</span>
+
+                <span class="n">out_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># Time the duration.</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">runtime</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> runtime grid = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">((</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">//</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; min &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">((</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">%</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; sec&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span>
+
+    <span class="k">return</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

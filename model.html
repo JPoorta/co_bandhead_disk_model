@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.co_bandhead_grid &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=01f34227"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="model package" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">model package</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">model.co_bandhead_grid</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model.co_bandhead_grid.calculate_grid"><code class="docutils literal notranslate"><span class="pre">calculate_grid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-model.example">model.example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model.example.make_grid"><code class="docutils literal notranslate"><span class="pre">make_grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.example.plot_star"><code class="docutils literal notranslate"><span class="pre">plot_star()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.example.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.example.run_test"><code class="docutils literal notranslate"><span class="pre">run_test()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-model.config">model.config</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.filename_co_grid_point"><code class="docutils literal notranslate"><span class="pre">filename_co_grid_point()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.flux_ext"><code class="docutils literal notranslate"><span class="pre">flux_ext()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.gaussian"><code class="docutils literal notranslate"><span class="pre">gaussian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.get_and_convert_mag_naira"><code class="docutils literal notranslate"><span class="pre">get_and_convert_mag_naira()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.integrand_gauss"><code class="docutils literal notranslate"><span class="pre">integrand_gauss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.jy_to_erg_s_cm2_um"><code class="docutils literal notranslate"><span class="pre">jy_to_erg_s_cm2_um()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.load_inc_dust_dict"><code class="docutils literal notranslate"><span class="pre">load_inc_dust_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.mag_to_flux"><code class="docutils literal notranslate"><span class="pre">mag_to_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.nco"><code class="docutils literal notranslate"><span class="pre">nco()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.planck_freq"><code class="docutils literal notranslate"><span class="pre">planck_freq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.planck_wvl"><code class="docutils literal notranslate"><span class="pre">planck_wvl()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.stellar_cont"><code class="docutils literal notranslate"><span class="pre">stellar_cont()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.t_ex"><code class="docutils literal notranslate"><span class="pre">t_ex()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.config.v_kep_cm_s"><code class="docutils literal notranslate"><span class="pre">v_kep_cm_s()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-model.flat_disk_log_grid">model.flat_disk_log_grid</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model.flat_disk_log_grid.calculate_flux"><code class="docutils literal notranslate"><span class="pre">calculate_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.flat_disk_log_grid.co_bandhead"><code class="docutils literal notranslate"><span class="pre">co_bandhead()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.flat_disk_log_grid.create_freq_array_profile_dict"><code class="docutils literal notranslate"><span class="pre">create_freq_array_profile_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.flat_disk_log_grid.instrumental_profile"><code class="docutils literal notranslate"><span class="pre">instrumental_profile()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model.flat_disk_log_grid.run_grid_log_r"><code class="docutils literal notranslate"><span class="pre">run_grid_log_r()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-model.sed_calculations">model.sed_calculations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model.sed_calculations.SED_full"><code class="docutils literal notranslate"><span class="pre">SED_full()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">model package</a></li>
+      <li class="breadcrumb-item active">model.co_bandhead_grid</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/model.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-model.co_bandhead_grid">
+<span id="model-co-bandhead-grid"></span><h1>model.co_bandhead_grid<a class="headerlink" href="#module-model.co_bandhead_grid" title="Link to this heading"></a></h1>
+<p>Run this module to calculate a grid of CO-bandhead spectra. Check a few things:</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>That a <code class="docutils literal notranslate"><span class="pre">results</span></code> folder exists in the project folder with the star folders.</dt><dd><p>(e.g. <cite>&lt;full/path/to&gt;/co_bandhead_disk_model/results/B268</cite>)</p>
+</dd>
+</dl>
+</li>
+<li><p>Check on local machine if all the imports work (if all necessary python packages are installed).</p></li>
+</ol>
+<p>Run this module from command line as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>model.co_bandhead_grid<span class="w"> </span><span class="o">{</span>i<span class="o">}</span>
+</pre></div>
+</div>
+<p>with the optional argument <cite>i</cite> explained under <code class="xref py py-meth docutils literal notranslate"><span class="pre">calculate_grid()</span></code>.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="model.co_bandhead_grid.calculate_grid">
+<span class="sig-prename descclassname"><span class="pre">model.co_bandhead_grid.</span></span><span class="sig-name descname"><span class="pre">calculate_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread_no</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/co_bandhead_grid.html#calculate_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.co_bandhead_grid.calculate_grid" title="Link to this definition"></a></dt>
+<dd><p>Calculates the full grid specified in this module (or 1/16th of it, see <code class="docutils literal notranslate"><span class="pre">thread_no</span></code>)  for all the objects under
+<code class="docutils literal notranslate"><span class="pre">stars</span></code>; i.e., one grid per star. Results will be stored in the <code class="docutils literal notranslate"><span class="pre">results</span></code> folder with structure
+<strong>results/&lt;star&gt;/&lt;grid_name&gt;/*.npy</strong>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>thread_no</strong> (<em>int</em><em> or </em><em>None</em>) – <p>If <cite>int</cite>, it should be between 0 and 15; in which case for each integer 1/16th of the
+grid will be calculated, so that the grid can be calculated parallel on 16 cores, by calling this  function
+16 times with <code class="docutils literal notranslate"><span class="pre">thread_no</span></code> = [0, … ,15].</p>
+<p>If <cite>None</cite>, the full grid for all the stars will be calculated serially.</p>
+</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-model.example">
+<span id="model-example"></span><h1>model.example<a class="headerlink" href="#module-model.example" title="Link to this heading"></a></h1>
+<p>Run this module to quickly calculate and plot a set of models.
+Different parameter settings can be tested by changing input in <code class="xref py py-meth docutils literal notranslate"><span class="pre">example.run()</span></code> and defaults can be adapted in
+<code class="docutils literal notranslate"><span class="pre">grid_params</span></code> or <code class="docutils literal notranslate"><span class="pre">all_params</span></code> (see source code).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="model.example.make_grid">
+<span class="sig-prename descclassname"><span class="pre">model.example.</span></span><span class="sig-name descname"><span class="pre">make_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ti</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/example.html#make_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.example.make_grid" title="Link to this definition"></a></dt>
+<dd><p>Takes the grid arrays and converts it to a numpy iterable grid. For explanation on the grid arrays check
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">flat_disk_log_grid.run_grid_log_r()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ti</strong></p></li>
+<li><p><strong>p</strong></p></li>
+<li><p><strong>Ni</strong></p></li>
+<li><p><strong>q</strong></p></li>
+<li><p><strong>Ri</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy grid</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.example.plot_star">
+<span class="sig-prename descclassname"><span class="pre">model.example.</span></span><span class="sig-name descname"><span class="pre">plot_star</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/example.html#plot_star"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.example.plot_star" title="Link to this definition"></a></dt>
+<dd><p>Function to plot the SED and photometry of the first star specified under <code class="docutils literal notranslate"><span class="pre">all_params[stars]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.example.run">
+<span class="sig-prename descclassname"><span class="pre">model.example.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_param_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/example.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.example.run" title="Link to this definition"></a></dt>
+<dd><p>This method will be run when the module is called from the command line. It will calculate and plot a (set of)
+model(s) with default settings and the option to test several values for one parameter. NOTE: it will calculate
+the model(s) only for the first star specified in <code class="docutils literal notranslate"><span class="pre">all_params[stars]</span></code>, unless <cite>test_param</cite> is “stars”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>test_param</strong> (<em>str</em>) – the name of the input parameter which for which a (set of) model(s) is to be calculated. This
+can be any parameter listed in the dictionaries <code class="docutils literal notranslate"><span class="pre">grid_params</span></code> or <code class="docutils literal notranslate"><span class="pre">all_params</span></code>.</p></li>
+<li><p><strong>test_param_array</strong> (<em>array-like</em>) – list or array of values (can be only one) that test_param should take. In general
+parameters cannot take just any value, so make sure to provide correct types and (more or less) physical values
+where relevant. More information can be found in <code class="xref py py-meth docutils literal notranslate"><span class="pre">flat_disk_log_grid.run_grid_log_r()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.example.run_test">
+<span class="sig-prename descclassname"><span class="pre">model.example.</span></span><span class="sig-name descname"><span class="pre">run_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_param_array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/example.html#run_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.example.run_test" title="Link to this definition"></a></dt>
+<dd><p>For each value in <cite>test_param_array</cite> calculate and plot a model with otherwise default values. For more
+information on the input see <code class="xref py py-meth docutils literal notranslate"><span class="pre">example.run()</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>test_param</strong></p></li>
+<li><p><strong>test_param_array</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-model.config">
+<span id="model-config"></span><h1>model.config<a class="headerlink" href="#module-model.config" title="Link to this heading"></a></h1>
+<p>This script declares all global constants and parameters, reads in the necessary data (from aux_files),
+sets folder paths, contains widely used general functions (e.g. black body function) etc. Most parameters and
+functions are explained in docstrings and/or comments.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.filename_co_grid_point">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">filename_co_grid_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ti</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ri_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#filename_co_grid_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.filename_co_grid_point" title="Link to this definition"></a></dt>
+<dd><p>Standardized filename for saving grid items.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ti</strong> – (int or float) initial temperature at ri_r in K.</p></li>
+<li><p><strong>p</strong> – (float) temperature exponent.</p></li>
+<li><p><strong>ni</strong> – (float) initial column density in cm^-2.</p></li>
+<li><p><strong>q</strong> – (float) density exponent.</p></li>
+<li><p><strong>ri_r</strong> – (float) initial (reference) disk radius in stellar radii.</p></li>
+<li><p><strong>dv</strong> – (int or float) gaussian width in km/s. (The None option is retained for older model grids,
+that don’t vary dv.)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(str) name of the model file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.flux_ext">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">flux_ext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wvl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#flux_ext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.flux_ext" title="Link to this definition"></a></dt>
+<dd><p>Extinction correction according to (Cardelli, Clayton, and Mathis 1989, ApJ 345, 245.)
+Calculates the extinction corrected flux according to Cardelli extinction law, interpolated over wvl,
+for the given A_V and R_V.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – flux array in arbitrary units</p></li>
+<li><p><strong>wvl</strong> – wavelength array in micron</p></li>
+<li><p><strong>a_v</strong> – Extinction in V band.</p></li>
+<li><p><strong>r_v</strong> – Slope of the extinction in V band.</p></li>
+<li><p><strong>dered</strong> – if True, then deredden observed flux.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Extinction corrected flux for wavelengths between 0.36-3.45 um.
+Flux-values outside this range are returned unaltered.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.gaussian">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#gaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.gaussian" title="Link to this definition"></a></dt>
+<dd><p>Normalized Gaussian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – variable.</p></li>
+<li><p><strong>mu</strong> – center.</p></li>
+<li><p><strong>sigma</strong> – standard deviation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a normalized Gaussian in as a function of x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.get_and_convert_mag_naira">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">get_and_convert_mag_naira</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phot_frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phot_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#get_and_convert_mag_naira"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.get_and_convert_mag_naira" title="Link to this definition"></a></dt>
+<dd><p>Get and convert all the magnitudes to flux. Gets the photometric fluxes and errors for each object to
+be collected in <cite>photometry_dict</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – (str) object name.</p></li>
+<li><p><strong>phot_frame</strong> – <code class="docutils literal notranslate"><span class="pre">panda</span></code> dataframe created from the photometry file.</p></li>
+<li><p><strong>phot_dict</strong> – dictionary with photometric flux zero’s and wavelength points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.integrand_gauss">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">integrand_gauss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mstar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200000.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#integrand_gauss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.integrand_gauss" title="Link to this definition"></a></dt>
+<dd><p>The gaussian function peaking at a velocity corresponding to a certain radius and angle.
+In flat_disk_log_grid this function is integrated over the angle theta to obtain a velocity profile for each radius.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mstar</strong> – Stellar mass.</p></li>
+<li><p><strong>inc</strong> – Inclination of the disk</p></li>
+<li><p><strong>dv</strong> – width of the gaussian velocity distribution peaking at the Keplerian velocity (in cm/s).
+The default is twice the resolution of the wavelength array, making it de facto a delta function,
+i.e. assuming no macro turbulence.</p></li>
+<li><p><strong>theta</strong> – Angular coordinate.</p></li>
+<li><p><strong>v</strong> – velocity array in cm/s.</p></li>
+<li><p><strong>r</strong> – Radial coordinate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A gaussian peaking at the velocity at (theta,r) in the disk (units: (cm/s)^-1).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.jy_to_erg_s_cm2_um">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">jy_to_erg_s_cm2_um</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_vu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wvl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#jy_to_erg_s_cm2_um"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.jy_to_erg_s_cm2_um" title="Link to this definition"></a></dt>
+<dd><p>Convert flux units. Uses c as defined in config (converts from cm/s to um/s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f_vu</strong> – Flux in Jy.</p></li>
+<li><p><strong>wvl</strong> – Wavelength in micron.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flux in erg/s/cm^2/um</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.load_inc_dust_dict">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">load_inc_dust_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#load_inc_dust_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.load_inc_dust_dict" title="Link to this definition"></a></dt>
+<dd><p>Load the dictionary with the best dust fits per inclination. This function replaces the call to seds.plot_best_fits
+in flat_disk_log_grid.
+The pickle files were created using
+sed_calculations.plot_best_fits(inc_deg, ‘i’, st, folder=”sed_Ri_dsr”, Ti= &lt;best fit Ti&gt; ,plot=False) with
+- Ti = 1500 for st = ‘B268’,’B243’,’B275’,’B163’ and Ti = 400 for st = ‘B331’
+- inc_deg = np.array([0,10,20,30,40,50,60,70,80,89])</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>st</strong> – String with the star name for which the dictionary is needed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.mag_to_flux">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">mag_to_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">band</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phot_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#mag_to_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.mag_to_flux" title="Link to this definition"></a></dt>
+<dd><p>Convert magnitude to flux in erg s^-1 cm^-2 um^-1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>band</strong> (<em>string</em>) – photometry band as listed in the phot_dict</p></li>
+<li><p><strong>mag</strong> – magnitude of the object</p></li>
+<li><p><strong>phot_dict</strong> – the photometry dictionary containing per band (wavelength,zero point flux, error on zeropoint).</p></li>
+<li><p><strong>sigma</strong> – optional error on magnitude.</p></li>
+<li><p><strong>sigma_nan</strong> – the fractional error to be assigned when sigma is nan.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>flux in erg s^-1 cm^-2 um^-1</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.nco">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">nco</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#nco"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.nco" title="Link to this definition"></a></dt>
+<dd><p>The CO surface density powerlaw (in cm^-2).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – radius in cm</p></li>
+<li><p><strong>ni</strong> – Gas (H2) surface density at initial radius (in cm^-2).</p></li>
+<li><p><strong>ri</strong> – Initial radius in cm</p></li>
+<li><p><strong>q</strong> – Power law exponent for gas density</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The CO surface density in cm^-2.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.planck_freq">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">planck_freq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#planck_freq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.planck_freq" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.planck_wvl">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">planck_wvl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#planck_wvl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.planck_wvl" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.stellar_cont">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">stellar_cont</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">star</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#stellar_cont"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.stellar_cont" title="Link to this definition"></a></dt>
+<dd><p>Returns the (not-extincted) stellar continuum on the given wavelength array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>star</strong> (<em>string</em>) – name of the star.</p></li>
+<li><p><strong>wc</strong> (<em>array</em>) – wavelength array in micron (of model).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Stellar continuum according to Kurucz model in the relevant wavelength range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.t_ex">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">t_ex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ti</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#t_ex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.t_ex" title="Link to this definition"></a></dt>
+<dd><p>Excitation temperature for the gas, given as a power law.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> (<em>array</em>) – Radial coordinate in cm.</p></li>
+<li><p><strong>ti</strong> – Initial temperature at ri in K.</p></li>
+<li><p><strong>ri</strong> – Initial radius in cm.</p></li>
+<li><p><strong>p</strong> – Power law exponent.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Return excitation temperature in function of r.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.config.v_kep_cm_s">
+<span class="sig-prename descclassname"><span class="pre">model.config.</span></span><span class="sig-name descname"><span class="pre">v_kep_cm_s</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m_star</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/config.html#v_kep_cm_s"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.config.v_kep_cm_s" title="Link to this definition"></a></dt>
+<dd><p>Keplarian velocity in cm/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m_star</strong> – in units solar mass.</p></li>
+<li><p><strong>r</strong> – stellar radius in cm.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Keplarian velocity in cm/s.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-model.flat_disk_log_grid">
+<span id="model-flat-disk-log-grid"></span><h1>model.flat_disk_log_grid<a class="headerlink" href="#module-model.flat_disk_log_grid" title="Link to this heading"></a></h1>
+<p>The module containing all the actual model grid calculations. More information can be found in the
+docstrings and in-code comments.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="model.flat_disk_log_grid.calculate_flux">
+<span class="sig-prename descclassname"><span class="pre">model.flat_disk_log_grid.</span></span><span class="sig-name descname"><span class="pre">calculate_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wvl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convolve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_theta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dF</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/flat_disk_log_grid.html#calculate_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.flat_disk_log_grid.calculate_flux" title="Link to this definition"></a></dt>
+<dd><p>Calculate the slab model flux (in erg/s/cm^2/micron) of a thin disk from source function and opacity per ring (R).
+Before integrating over R (optionally) convolve with velocity profiles using int_theta.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>S</strong> – source function (erg/s/cm^2/sr/micron) in function of wvl and R (2D array of shape (len(R),len(wvl)),
+sometimes provided for multiple dv0 (if S_tot) in which case 3D array of shape (len(dv0),len(R),len(wvl).</p></li>
+<li><p><strong>tau</strong> – opacity in function of wvl and R (3D array of shape (len(dv0),len(R),len(wvl)).</p></li>
+<li><p><strong>i</strong> – inclination in radians.</p></li>
+<li><p><strong>R</strong> – radial distances (from the stellar surface) of the rings (in cm) (1D array).</p></li>
+<li><p><strong>wvl</strong> – wavelength array in micron, equally spaced in velocity (see create_freq_array_profile_dict) Used to
+calculate the flux per ring (integration over wvl - dF).</p></li>
+<li><p><strong>convolve</strong> – if True intensities will be convolved with a velocity profile provided through int_theta.</p></li>
+<li><p><strong>int_theta</strong> – (2D array of shape (len(R), len(vel_Kep)) where vel_Kep represents an array of Keplerian
+velocities with spacing dv. This parameter is a velocity profile (by construction integrated over a ring, i.e.,
+2 pi) for each radius (units (cm/s)^-1).</p></li>
+<li><p><strong>dv</strong> – velocity resolution in cm/s of vel_interp and of vel_Kep (see int_theta).</p></li>
+<li><p><strong>dF</strong> – (boolean) if True calculate flux per ring.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>flux in erg/s/cm^2/micron and dF/dR: wavelength integrated flux per ring in erg/s/cm^2/cm.
+(Two 1D arrays with len(wvl).)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.flat_disk_log_grid.co_bandhead">
+<span class="sig-prename descclassname"><span class="pre">model.flat_disk_log_grid.</span></span><span class="sig-name descname"><span class="pre">co_bandhead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_gas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NCO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wave</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_einstein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jlower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jupper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq_trans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Elow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prof_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dust</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dust_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/flat_disk_log_grid.html#co_bandhead"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.flat_disk_log_grid.co_bandhead" title="Link to this definition"></a></dt>
+<dd><p>Calculates the source function and opacities ifo wavelength for the CO-bandheads and (iff dust=True) for the
+dust continuum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_gas</strong> (1D array with <cite>len(R)</cite>) – Temperature of the CO gas in function of R.</p></li>
+<li><p><strong>NCO</strong> (1D array with <cite>len(R)</cite>) – Surface number density (in cm^-2) of the CO gas in function of R.</p></li>
+<li><p><strong>wave</strong> (<em>1D array</em>) – wavelength array for which the output is wanted.</p></li>
+<li><p><strong>A_einstein</strong> (1D array with <cite>len(freq_trans)</cite>) – Einstein A coefficients of all the transitions.</p></li>
+<li><p><strong>jlower</strong> (1D array with <cite>len(freq_trans)</cite>) – lower rotational quantum numbers of all the transitions.</p></li>
+<li><p><strong>jupper</strong> (1D array with <cite>len(freq_trans)</cite>) – upper rotational quantum numbers of all the transitions.</p></li>
+<li><p><strong>freq_trans</strong> (<em>1D array</em>) – transition frequencies in cm^-1.</p></li>
+<li><p><strong>Elow</strong> (1D array with <cite>len(freq_trans)</cite>) – energies of the lower levels of the transitions in Kelvin.</p></li>
+<li><p><strong>prof_dict</strong> (line profile <cite>dictionary</cite>) – <ul>
+<li><p>keys: transition in cm^-1</p></li>
+<li><p>values: gaussian profile, indices on the wavelength array; each an array of the length of dv0.</p></li>
+</ul>
+</p></li>
+<li><p><strong>dust</strong> (<em>Bool</em>) – if True dust is included and dust_params has to be provided. If False no continuum is returned.</p></li>
+<li><p><strong>dust_params</strong> – H2 surface density and dust temperatures ifo R.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>iff dust == <cite>False</cite>: Source function and opacity for CO; resp. 2D array of shape (len(R),len(wave)) and 3D
+array of shape <cite>(len(dv0), len(R), len(wave))</cite>.</p>
+<p>iff dust = <cite>True</cite>: Total source function and opacity for CO+dust; two 3D arrays of shape (len(dv0),len(R),
+len(wave)), and opacity and source function for dust; two 2D arrays of shape (len(R),len(wave)).
+Total four arrays.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.flat_disk_log_grid.create_freq_array_profile_dict">
+<span class="sig-prename descclassname"><span class="pre">model.flat_disk_log_grid.</span></span><span class="sig-name descname"><span class="pre">create_freq_array_profile_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq_trans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/flat_disk_log_grid.html#create_freq_array_profile_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.flat_disk_log_grid.create_freq_array_profile_dict" title="Link to this definition"></a></dt>
+<dd><p>Create the wavelength array from a regularly (dv) spaced velocity array, and calculate the gaussian line profile
+for each transition in frequency space with width(s) dv0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>freq_trans</strong> – Frequency of the transitions in cm**-1.</p></li>
+<li><p><strong>dv</strong> – resolution of velocity/wavelength and frequency arrays in cm/s.</p></li>
+<li><p><strong>dv0</strong> – list of doppler widths of the lines in cm/s.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>wavelength array in micron, sorted from low to high and with equal spacing in velocity space.</p></li>
+<li><dl class="simple">
+<dt>Line profile dictionary of <cite>len(freq_trans)</cite> with</dt><dd><ul>
+<li><p>keys: transition in cm^-1;</p></li>
+<li><p>values: list of two 2D <code class="docutils literal notranslate"><span class="pre">numpy</span></code> arrays: gaussian profiles, and indices on the frequency (and wavelength)
+array, both of shape (len(dv0), len(indices)).</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.flat_disk_log_grid.instrumental_profile">
+<span class="sig-prename descclassname"><span class="pre">model.flat_disk_log_grid.</span></span><span class="sig-name descname"><span class="pre">instrumental_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wvl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vupper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vlower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_wvl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/flat_disk_log_grid.html#instrumental_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.flat_disk_log_grid.instrumental_profile" title="Link to this definition"></a></dt>
+<dd><p>Calculates instrumental profile for convolution to compare with observations. The units of the instrumental
+profile are micron^-1; the convolution product should be multiplied by dx to approximate continuous convolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wvl</strong> – wavelength array that goes with the flux, in micron.</p></li>
+<li><p><strong>res</strong> – spectral resolution R of the observation.</p></li>
+<li><p><strong>vupper</strong> – array of upper vibrational quantum numbers. (optional, should be provided if no center_wvl is given)</p></li>
+<li><p><strong>vlower</strong> – array of lower vibrational quantum numbers. (optional, should be provided if no center_wvl is given)</p></li>
+<li><p><strong>center_wvl</strong> – reference wavelength for resolution and pivot point for convolution (0-point velocity).
+(optional, but either this or vupper and vlower should be provided).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a gaussian profile (in micron^-1) and the wavelength step dx in micron.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model.flat_disk_log_grid.run_grid_log_r">
+<span class="sig-prename descclassname"><span class="pre">model.flat_disk_log_grid.</span></span><span class="sig-name descname"><span class="pre">run_grid_log_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc_deg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vupper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vlower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nJ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dust</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sed_best_fit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_CO</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_dust</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rmin_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rmax_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_Rs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convolve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1.3,</span> <span class="pre">1.02)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lisa_it</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saved_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/flat_disk_log_grid.html#run_grid_log_r"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.flat_disk_log_grid.run_grid_log_r" title="Link to this definition"></a></dt>
+<dd><p>Calculates a grid of CO bandhead profiles and optionally save the normalized profiles and the wavelength array.
+For a test run use scalar values in the grid and for dv0, and set convolve = True.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grid</strong> – <p>grid with 5 variables, created as follows by np.meshgrid:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">Ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">Ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">Ri</span><span class="p">,</span><span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="p">[</span><span class="n">tiv</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">niv</span><span class="p">,</span> <span class="n">qv</span><span class="p">,</span> <span class="n">riv</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>With Ti, p, Ni, q, Ri arrays or scalars:</p>
+<blockquote>
+<div><ul>
+<li><p>Ti: initial CO gas temperature  at Ri (in K).</p></li>
+<li><p>p: power law exponent for the gas temperature (p&lt;0).</p></li>
+<li><p>Ni: initial gas (H2) surface density at Ri (in cm^-2).</p></li>
+<li><p>q: power law exponent for the gas surface density (q&lt;0).</p></li>
+<li><p>Ri: initial radius for the powerlaws for the CO gas disk (in stellar radii R*).</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>inc_deg</strong> – array of inclination(s) in degrees. This can only contain values from [10,20,30,40,50,60,70,80]</p></li>
+<li><p><strong>stars</strong> – array of string(s) with the object names.</p></li>
+<li><p><strong>dv0</strong> – (scalar or array) doppler width of the lines in km/s. If array, for each element the bandheads
+are calculated and (if relevant) saved in separate files with corresponding filenames.</p></li>
+<li><p><strong>vupper</strong> – list of upper level(s) of the vibrational transition(s).</p></li>
+<li><p><strong>vlower</strong> – list of lower level(s) of the vibrational transition(s).</p></li>
+<li><p><strong>nJ</strong> – number of rotational transitions to be taken into account.</p></li>
+<li><p><strong>dust</strong> – boolean. If True dust is included. If False the continuum is assumed to be stellar only.</p></li>
+<li><p><strong>sed_best_fit</strong> – boolean.
+- If True the best fit SED to the photometry is used for the continuum and all its dust disk parameters are adopted
+(including inclination).
+- If False the best fit SED to the photometry that has the same inclination as the CO disk is used for the continuum.
+- If dust = False this parameter is ignored.</p></li>
+<li><p><strong>num_CO</strong> – (optional) integer specifying amount of radial points for the CO gas disk. (default = 50)</p></li>
+<li><p><strong>num_dust</strong> – (optional) integer specifying amount of radial points for the dust disk. (default = 200)</p></li>
+<li><p><strong>Rmin_in</strong> – (optional) initial radius for the CO gas disk (in stellar radii R*). If not provided defaults to Ri.</p></li>
+<li><p><strong>Rmax_in</strong> – (optional) outer radius for the CO gas disk (in stellar radii R*). If not provided defaults
+to the point where the gas temperature drops below 1000 K (is thus dependent on Ri, Ti, p and hence different
+per grid point).</p></li>
+<li><p><strong>print_Rs</strong> – (optional) boolean. If True information on the radial arrays is printed. (default = False)</p></li>
+<li><p><strong>convolve</strong> – (optional) boolean. If True the fluxes are convolved with the instrumental profile and
+returned in the first loop over the grid and inclination. The grid is then not iterated over and no fluxes are
+saved regardless of the value of save. (default = False)</p></li>
+<li><p><strong>save</strong> – (optional) string specifying the name of the folder where the normalized bandheads and the wavelength
+array are to be saved. If not provided, nothing is saved. (default = None)</p></li>
+<li><p><strong>maxmin</strong> – (optional) tuple (max, min). The maximum and minimum values maximum normalized flux points can take.
+If the maximum of the normalized flux is higher than max or lower than min the model is not saved, even if
+save is true.</p></li>
+<li><p><strong>lisa_it</strong> – (int (from 0 to 15) or None) refers to the thread number when the code is run on 16 parallel cores
+in LISA. If used, the grid is divided into 16 equal parts, and the part with this thread number is run.
+If this parameter is set to None, the full grid for all objects will be calculated serially.</p></li>
+<li><p><strong>saved_list</strong> – (optional) string, specifying the filename extension (in folder aux_files, and beginning with a
+star name) which contains a list of filenames of the models that need to be calculated (all other models
+will be skipped!). To be used if large parts of the parameter space in a grid are models that don’t get
+saved anyway as for e.g. low (&lt;0.5) p values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>the wavelength array and a 2D array containing the normalized fluxes for each inclination and
+the last gridpoint in grid.</p>
+<p>If convolve is <cite>True</cite>: the wavelength array, total extincted flux, normalized flux, convolved total flux
+and convolved normalized flux are returned for the first gridpoint and first inclination.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-model.sed_calculations">
+<span id="model-sed-calculations"></span><h1>model.sed_calculations<a class="headerlink" href="#module-model.sed_calculations" title="Link to this heading"></a></h1>
+<p>Contains a function to calculate an SED from dust-disk and stellar parameter input.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="model.sed_calculations.SED_full">
+<span class="sig-prename descclassname"><span class="pre">model.sed_calculations.</span></span><span class="sig-name descname"><span class="pre">SED_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ti</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">star</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wvl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dust_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/model/sed_calculations.html#SED_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#model.sed_calculations.SED_full" title="Link to this definition"></a></dt>
+<dd><p>Calculates one full SED (dust + star) from free parameter input and stellar parameters in function of
+wavelength points &lt;wvl&gt; (default cfg.wsil).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ri</strong> – inner radius in AU.</p></li>
+<li><p><strong>Ti</strong> – initial temperature in K.</p></li>
+<li><p><strong>p</strong> – power law exponent for the dust temperature.</p></li>
+<li><p><strong>Ni</strong> – initial H2 surface density in cm^-2.</p></li>
+<li><p><strong>q</strong> – power law exponent for the H2 surface density.</p></li>
+<li><p><strong>inc</strong> – inclination in degrees (scalar!).</p></li>
+<li><p><strong>star</strong> – string with name of the star.</p></li>
+<li><p><strong>A_v</strong> – Extinction parameter Av.</p></li>
+<li><p><strong>R_v</strong> – Extinction parameter Rv.</p></li>
+<li><p><strong>wvl</strong> – wavelength array to calculate the SED on. (default <cite>cfg.wsil</cite>)</p></li>
+<li><p><strong>num_r</strong> – number of radial grid points in the disk.</p></li>
+<li><p><strong>R_max</strong> – outer radius, default from config is 500 AU.</p></li>
+<li><p><strong>dust_params</strong> – list containing arrays: [R,NH,T_dust]. If provided overrides all other disk parameters except
+inclination; also only the non-extincted flux is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>wavelength array in micron, total flux, extincted star and dust fluxes, all in ergs/s/cm^2/micron.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="model package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.sed_calculations &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">model package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">model.sed_calculations</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for model.sed_calculations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a function to calculate an SED from dust-disk and stellar parameter input.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">model.config</span> <span class="k">as</span> <span class="nn">cfg</span>
+
+
+<div class="viewcode-block" id="SED_full">
+<a class="viewcode-back" href="../../model.html#model.sed_calculations.SED_full">[docs]</a>
+<span class="k">def</span> <span class="nf">SED_full</span><span class="p">(</span><span class="n">Ri</span><span class="p">,</span> <span class="n">Ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">Ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">star</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">,</span> <span class="n">wvl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_r</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">R_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dust_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates one full SED (dust + star) from free parameter input and stellar parameters in function of</span>
+<span class="sd">    wavelength points &lt;wvl&gt; (default cfg.wsil).</span>
+
+<span class="sd">    :param Ri: inner radius in AU.</span>
+<span class="sd">    :param Ti: initial temperature in K.</span>
+<span class="sd">    :param p: power law exponent for the dust temperature.</span>
+<span class="sd">    :param Ni: initial H2 surface density in cm^-2.</span>
+<span class="sd">    :param q: power law exponent for the H2 surface density.</span>
+<span class="sd">    :param inc: inclination in degrees (scalar!).</span>
+<span class="sd">    :param star: string with name of the star.</span>
+<span class="sd">    :param A_v: Extinction parameter Av.</span>
+<span class="sd">    :param R_v: Extinction parameter Rv.</span>
+<span class="sd">    :param wvl: wavelength array to calculate the SED on. (default `cfg.wsil`)</span>
+<span class="sd">    :param num_r: number of radial grid points in the disk.</span>
+<span class="sd">    :param R_max: outer radius, default from config is 500 AU.</span>
+<span class="sd">    :param dust_params: list containing arrays: [R,NH,T_dust]. If provided overrides all other disk parameters except</span>
+<span class="sd">            inclination; also only the non-extincted flux is returned.</span>
+<span class="sd">    :return: wavelength array in micron, total flux, extincted star and dust fluxes, all in ergs/s/cm^2/micron.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">wvl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wvl</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">wsil</span>
+
+    <span class="k">if</span> <span class="n">R_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">R_max</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_max_def</span>
+
+    <span class="n">inc_rad</span> <span class="o">=</span> <span class="n">inc</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+
+    <span class="k">if</span> <span class="n">dust_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">Ri</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span><span class="p">,</span> <span class="n">R_max</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">num_r</span><span class="p">)</span>
+        <span class="n">NH</span> <span class="o">=</span> <span class="n">Ni</span> <span class="o">*</span> <span class="p">(</span><span class="n">R</span> <span class="o">/</span> <span class="p">(</span><span class="n">Ri</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span><span class="p">))</span> <span class="o">**</span> <span class="n">q</span>  <span class="c1"># column density H2</span>
+        <span class="n">Tdust</span> <span class="o">=</span> <span class="n">Ti</span> <span class="o">*</span> <span class="p">(</span><span class="n">R</span> <span class="o">/</span> <span class="p">(</span><span class="n">Ri</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AU</span><span class="p">))</span> <span class="o">**</span> <span class="n">p</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">R</span><span class="p">,</span> <span class="n">NH</span><span class="p">,</span> <span class="n">Tdust</span> <span class="o">=</span> <span class="n">dust_params</span>
+
+    <span class="c1"># Optical depth of the dust -&gt; Should it not be 2*protonmass (H2 and not H)?:</span>
+    <span class="c1"># yes, implemented 03-02-2020.</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="p">(((</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">radg</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">Qabs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">*</span> <span class="n">NH</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span>
+           <span class="mi">2</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mass_proton</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mass_grain</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">gas_to_solid</span><span class="p">)</span>
+    <span class="n">tau_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">wvl</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">wsil</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tau</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))])</span>
+    <span class="n">BB_dust</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">planck_wvl</span><span class="p">(</span><span class="n">wvl</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="mf">1.e4</span><span class="p">,</span> <span class="n">Tdust</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+
+    <span class="n">flux_star</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">stellar_cont</span><span class="p">(</span><span class="n">star</span><span class="p">,</span> <span class="n">wvl</span><span class="p">)</span>
+
+    <span class="n">intensity_dust</span> <span class="o">=</span> <span class="n">BB_dust</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tau_int</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">inc_rad</span><span class="p">)))</span>
+    <span class="n">flux_dust</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">intensity_dust</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">R</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">R</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">inc_rad</span><span class="p">)</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">d</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="n">flux_tot_not_ext</span> <span class="o">=</span> <span class="n">flux_star</span> <span class="o">+</span> <span class="n">flux_dust</span>
+
+    <span class="k">if</span> <span class="n">dust_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">flux_tot_not_ext</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fl_dust_ext</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">flux_ext</span><span class="p">(</span><span class="n">flux_dust</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">)</span>
+        <span class="n">fl_star_ext</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">flux_ext</span><span class="p">(</span><span class="n">flux_star</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">A_v</span><span class="p">,</span> <span class="n">R_v</span><span class="p">)</span>
+        <span class="n">flux_tot</span> <span class="o">=</span> <span class="n">fl_dust_ext</span> <span class="o">+</span> <span class="n">fl_star_ext</span>
+
+        <span class="k">return</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">flux_tot</span><span class="p">,</span> <span class="n">fl_star_ext</span><span class="p">,</span> <span class="n">fl_dust_ext</span><span class="p">,</span> <span class="n">flux_tot_not_ext</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

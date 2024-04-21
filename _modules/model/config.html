@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>model.config &mdash; CO bandhead disk model 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CO bandhead disk model
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">model package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CO bandhead disk model</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">model.config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for model.config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script declares all global constants and parameters, reads in the necessary data (from aux_files),</span>
+<span class="sd">sets folder paths, contains widely used general functions (e.g. black body function) etc. Most parameters and</span>
+<span class="sd">functions are explained in docstrings and/or comments.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># CONSTANTS</span>
+
+<span class="n">kB</span> <span class="o">=</span> <span class="mf">1.380649e-16</span>  <span class="c1"># Boltzman constant erg/K</span>
+<span class="n">h</span> <span class="o">=</span> <span class="mf">6.62607015e-27</span>  <span class="c1"># Planck constant erg.s</span>
+<span class="n">c</span> <span class="o">=</span> <span class="mf">2.99792458e10</span>  <span class="c1"># speed of light cm/s</span>
+<span class="n">c_km</span> <span class="o">=</span> <span class="mf">2.99792458e5</span>  <span class="c1"># speed of light km/s</span>
+<span class="n">G</span> <span class="o">=</span> <span class="mf">6.674e-8</span>  <span class="c1"># Gravitational constant in cgs (cm3/g/s^2)</span>
+<span class="n">cm_K</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="n">kB</span>  <span class="c1"># conversion cm-1 to K</span>
+<span class="n">mass_proton</span> <span class="o">=</span> <span class="mf">1.67262e-24</span>  <span class="c1"># proton mass in g</span>
+<span class="n">CO_mass</span> <span class="o">=</span> <span class="mf">28.010</span> <span class="o">/</span> <span class="mf">6.022e23</span>  <span class="c1"># mass in g of a CO molecule (molecular weight of CO in g/mol divided by Avogadro&#39;s nr)</span>
+<span class="n">pc</span> <span class="o">=</span> <span class="mf">3.086e18</span>  <span class="c1"># parsec in cm</span>
+<span class="n">AU</span> <span class="o">=</span> <span class="mf">1.496e13</span>  <span class="c1"># AU in cm</span>
+<span class="n">R_sun</span> <span class="o">=</span> <span class="mf">6.955e10</span>  <span class="c1"># solar radius cm</span>
+<span class="n">M_sun</span> <span class="o">=</span> <span class="mf">1.988475e+33</span>  <span class="c1"># solar mass in gr</span>
+
+<span class="c1"># PARAMETERS</span>
+
+<span class="c1"># Various</span>
+<span class="n">sampling</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># Shannon minimum sampling</span>
+<span class="n">max_wvl</span> <span class="o">=</span> <span class="mf">2.48</span>  <span class="c1"># Maximum wavelength in micron - cut off used in co_bandhead</span>
+<span class="n">min_dv_cm</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="mf">1.e5</span>  <span class="c1"># velocity resolution in cm/s for construction of frequency and velocity arrays</span>
+
+<span class="c1"># Outer boundary temperature</span>
+<span class="n">min_T_gas</span> <span class="o">=</span> <span class="mi">600</span>  <span class="c1"># Minimum gas temperature that defines outer boundary of the model.</span>
+
+<span class="c1"># Default outer boundary for log_grid</span>
+<span class="n">r_max_def</span> <span class="o">=</span> <span class="mi">500</span> <span class="o">*</span> <span class="n">AU</span>
+
+<span class="c1"># Dust parameters</span>
+<span class="n">radg</span> <span class="o">=</span> <span class="mf">1e-5</span>  <span class="c1"># grain radius in cm (0.1 micron)</span>
+<span class="n">rho_grain</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># grain density (g/cm^3)</span>
+<span class="n">mass_grain</span> <span class="o">=</span> <span class="n">rho_grain</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radg</span> <span class="o">**</span> <span class="mi">3</span>  <span class="c1"># grain mass (g?)</span>
+<span class="n">max_T_dust</span> <span class="o">=</span> <span class="mi">1500</span>  <span class="c1"># maximum dust temperature</span>
+<span class="n">min_dust_T</span> <span class="o">=</span> <span class="mf">0.01</span>  <span class="c1"># dust temperature used when dust is considered to be absent from the model</span>
+<span class="n">gas_to_solid</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># canonical gas to dust ratio</span>
+
+<span class="c1"># Stellar parameters and extinction</span>
+<span class="c1"># [stellar mass from track in M_sun,T_eff(K),log_g,stellar radius in R_sun, Resolution, SNR, R_v,A_v, RV(in km/s)]</span>
+<span class="n">stel_parameter_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;B243&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.</span><span class="p">,</span> <span class="mi">13000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">7.5</span><span class="p">,</span> <span class="mf">11300.</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">4.7</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">,</span> <span class="mf">20.2</span><span class="p">],</span>
+                       <span class="s1">&#39;B275&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">8.</span><span class="p">,</span> <span class="mi">13000</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">11.7</span><span class="p">,</span> <span class="mf">11300.</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">,</span> <span class="o">-</span><span class="mf">11.2</span><span class="p">],</span>
+                       <span class="s1">&#39;B268&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.</span><span class="p">,</span> <span class="mi">12250</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">8.8</span><span class="p">,</span> <span class="mf">11300.</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">,</span> <span class="mf">8.1</span><span class="p">,</span> <span class="mf">4.3</span><span class="p">],</span>
+                       <span class="s1">&#39;B163&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.</span><span class="p">,</span> <span class="mi">8250</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">10.1</span><span class="p">,</span> <span class="mf">11300.</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">13.21</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                       <span class="s1">&#39;B331&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">12.</span><span class="p">,</span> <span class="mi">13000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">21.8</span><span class="p">,</span> <span class="mi">11300</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">,</span> <span class="mf">13.3</span><span class="p">,</span> <span class="mf">13.9</span><span class="p">]}</span>
+
+<span class="c1"># Best dust fit for each star (to avoid copying unnecessary data to LISA).</span>
+<span class="n">best_dust_fit</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;B163&#39;</span><span class="p">:</span> <span class="p">(</span>
+    <span class="s1">&#39;1500_-0.1_1e+22_-4.0_80_1.4&#39;</span><span class="p">,</span> <span class="mf">1500.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.e+22</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.0285716</span><span class="p">,</span> <span class="mf">80.</span><span class="p">,</span> <span class="mf">1.3682581</span><span class="p">,</span> <span class="mf">2.1831985e-08</span><span class="p">,</span> <span class="mf">208.63118</span><span class="p">,</span>
+    <span class="mf">69.543724</span><span class="p">),</span> <span class="s1">&#39;B243&#39;</span><span class="p">:</span> <span class="p">(</span>
+    <span class="s1">&#39;1400_-0.7_1e+21_-5.6_80_5.8&#39;</span><span class="p">,</span> <span class="mf">1400.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">1.e+21</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.6</span><span class="p">,</span> <span class="mf">80.</span><span class="p">,</span> <span class="mf">5.753369</span><span class="p">,</span> <span class="mf">2.1751644e-08</span><span class="p">,</span> <span class="mf">228.30612</span><span class="p">,</span> <span class="mf">57.07653</span><span class="p">),</span>
+    <span class="s1">&#39;B268&#39;</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s1">&#39;1500_-0.7_1e+21_-5.4_80_4.7&#39;</span><span class="p">,</span> <span class="mf">1500.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">1.e+21</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.4035716</span><span class="p">,</span> <span class="mf">80.</span><span class="p">,</span> <span class="mf">4.652704</span><span class="p">,</span> <span class="mf">1.5046174e-08</span><span class="p">,</span> <span class="mf">45.305992</span><span class="p">,</span>
+        <span class="mf">22.652996</span><span class="p">),</span> <span class="s1">&#39;B275&#39;</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s1">&#39;1500_-0.9_1e+21_-2.3_60_7.8&#39;</span><span class="p">,</span> <span class="mf">1500.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.e+21</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.2607143</span><span class="p">,</span> <span class="mf">60.</span><span class="p">,</span> <span class="mf">7.8317246</span><span class="p">,</span> <span class="mf">3.6823135e-07</span><span class="p">,</span> <span class="mf">34.621643</span><span class="p">,</span>
+        <span class="mf">8.655411</span><span class="p">),</span> <span class="s1">&#39;B331&#39;</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s1">&#39;400_-5.1_1e+21_-5.6_80_144.8&#39;</span><span class="p">,</span> <span class="mf">400.</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.1</span><span class="p">,</span> <span class="mf">1.e+21</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.6</span><span class="p">,</span> <span class="mf">80.</span><span class="p">,</span> <span class="mf">144.82933</span><span class="p">,</span> <span class="mf">1.3624263e-05</span><span class="p">,</span> <span class="mf">371.14423</span><span class="p">,</span> <span class="mf">61.857372</span><span class="p">)}</span>
+
+<span class="c1"># Distance to the star in cm</span>
+<span class="n">d</span> <span class="o">=</span> <span class="mf">1.98e3</span> <span class="o">*</span> <span class="n">pc</span>
+
+<span class="c1"># Wavelengths of the lowest wavelength transition (the onset) of each bandhead in micron</span>
+<span class="c1"># (according to the atomic data file with nJ = 120).</span>
+
+<span class="n">onset_wvl_dict</span> <span class="o">=</span> <span class="p">{(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">4.2949</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">4.3504</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">4.4071</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">4.4652</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span> <span class="mf">4.5246</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span> <span class="mf">4.5855</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span> <span class="mf">4.6477</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span> <span class="mf">4.7115</span><span class="p">,</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">):</span> <span class="mf">4.7768</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span> <span class="mf">4.8436</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">2.2935</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">2.3227</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">2.3525</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">2.3829</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span> <span class="mf">2.4141</span><span class="p">,</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span> <span class="mf">2.4461</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">1.5582</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">1.5779</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">1.5982</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">1.6189</span><span class="p">,</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span> <span class="mf">1.6401</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span> <span class="mf">1.6618</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span> <span class="mf">1.684</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span> <span class="mf">1.7067</span><span class="p">,</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">):</span> <span class="mf">1.73</span><span class="p">,</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span> <span class="mf">1.7538</span><span class="p">,</span> <span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span> <span class="mf">1.7783</span><span class="p">,</span> <span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">11</span><span class="p">):</span> <span class="mf">1.8033</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">12</span><span class="p">):</span> <span class="mf">1.829</span><span class="p">,</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span> <span class="mf">1.8553</span><span class="p">,</span> <span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">14</span><span class="p">):</span> <span class="mf">1.8823</span><span class="p">,</span> <span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">15</span><span class="p">):</span> <span class="mf">1.91</span><span class="p">,</span> <span class="p">(</span><span class="mi">19</span><span class="p">,</span> <span class="mi">16</span><span class="p">):</span> <span class="mf">1.9384</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">17</span><span class="p">):</span> <span class="mf">1.9675</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">1.1814</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">1.1964</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">1.2118</span><span class="p">,</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">1.2275</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span> <span class="mf">1.2437</span><span class="p">,</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span> <span class="mf">1.2601</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span> <span class="mf">1.277</span><span class="p">,</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span> <span class="mf">1.2943</span><span class="p">,</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">):</span> <span class="mf">1.3121</span><span class="p">,</span> <span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span> <span class="mf">1.3302</span><span class="p">,</span> <span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span> <span class="mf">1.3488</span><span class="p">,</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">11</span><span class="p">):</span> <span class="mf">1.3679</span><span class="p">,</span>
+                  <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">12</span><span class="p">):</span> <span class="mf">1.3874</span><span class="p">,</span> <span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span> <span class="mf">1.4074</span><span class="p">,</span> <span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">14</span><span class="p">):</span> <span class="mf">1.428</span><span class="p">,</span> <span class="p">(</span><span class="mi">19</span><span class="p">,</span> <span class="mi">15</span><span class="p">):</span> <span class="mf">1.4491</span><span class="p">,</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">16</span><span class="p">):</span> <span class="mf">1.4707</span><span class="p">}</span>
+
+<span class="n">CO13_onset</span> <span class="o">=</span> <span class="p">{(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">4.3915</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">4.447</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">4.5037</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">4.5617</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span> <span class="mf">4.621</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span> <span class="mf">4.6816</span><span class="p">,</span>
+              <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span> <span class="mf">4.7437</span><span class="p">,</span>
+              <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span> <span class="mf">4.8072</span><span class="p">,</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">):</span> <span class="mf">4.8721</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span> <span class="mf">4.9387</span><span class="p">,</span>
+              <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="mf">2.3448</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="mf">2.3739</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="mf">2.4037</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="mf">2.4341</span><span class="p">}</span>
+
+<span class="c1"># FOLDERS and DATA</span>
+<span class="n">project_folder</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+<span class="c1"># to move up from docs and handle being in Ubuntu in CI</span>
+<span class="k">if</span> <span class="s2">&quot;GENERATING_SPHINX_DOCS&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+    <span class="n">project_folder</span> <span class="o">=</span> <span class="n">project_folder</span> <span class="o">/</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span>
+
+<span class="c1"># Folders for results</span>
+<span class="n">results_folder</span> <span class="o">=</span> <span class="n">project_folder</span> <span class="o">/</span> <span class="s2">&quot;results/&quot;</span>
+<span class="c1"># Folder for data files</span>
+<span class="n">aux_files</span> <span class="o">=</span> <span class="n">project_folder</span> <span class="o">/</span> <span class="s2">&quot;aux_files/&quot;</span>
+
+<span class="c1"># folder with Kurucz models</span>
+<span class="n">Kurucz_dir</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s2">&quot;Castelli-Kurucz/&quot;</span>
+<span class="c1"># Atomic data.</span>
+<span class="n">species</span> <span class="o">=</span> <span class="s2">&quot;12C16O&quot;</span>
+<span class="n">atomic_data</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="p">(</span><span class="s2">&quot;hitran_table_&quot;</span> <span class="o">+</span> <span class="n">species</span><span class="p">)</span>
+<span class="n">partition_sums</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="p">(</span><span class="s2">&quot;Q_&quot;</span> <span class="o">+</span> <span class="n">species</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">)</span>
+<span class="c1"># State independent statistical weight factors g_i according to eq.22 in Simeckova 2006.</span>
+<span class="c1"># The statistical weights (2*J+1) should be multiplied by this factor.</span>
+<span class="n">g_i_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;12C16O&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;13C16O&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="c1"># Abundance H2/12CO. Elemental abundance of 12C/13C is about 69 (source: R.Visser 2009)</span>
+<span class="c1"># We use the hitran value for the relative abundance N(12CO)/N(13CO): 89 (https://hitran.org/docs/iso-meta/)</span>
+<span class="n">N12CO_N13CO</span> <span class="o">=</span> <span class="mi">89</span>
+<span class="n">H_CO</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;12C16O&quot;</span><span class="p">:</span> <span class="mf">1.e4</span><span class="p">,</span> <span class="s2">&quot;13C16O&quot;</span><span class="p">:</span> <span class="mf">1.e4</span> <span class="o">*</span> <span class="n">N12CO_N13CO</span><span class="p">}</span>
+<span class="n">dust_data</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s1">&#39;eps_Sil&#39;</span>
+<span class="n">photometry</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s1">&#39;photometry&#39;</span>
+<span class="n">photometry_naira</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s1">&#39;photometry_naira&#39;</span>
+<span class="c1"># Wavelength array onto which all models are interpolated before saving. Created by including all data points beyond</span>
+<span class="c1"># 1.54 micron process_molecfit_output_fits [conflicted] in X-shooter data folder.</span>
+<span class="n">obj_wvl_array</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s2">&quot;wvl_obj.npy&quot;</span>
+<span class="c1"># Name of the pickle file where the best fits for the preferred grid is stored.</span>
+<span class="n">best_fits_dict</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="s1">&#39;best_fits_dict&#39;</span>
+
+
+<span class="c1"># Pickle file location and extraction function for the dictionaries with the best dust fits per inclination.</span>
+<span class="c1"># (to avoid copying unnecessary data to LISA)</span>
+<div class="viewcode-block" id="load_inc_dust_dict">
+<a class="viewcode-back" href="../../model.html#model.config.load_inc_dust_dict">[docs]</a>
+<span class="k">def</span> <span class="nf">load_inc_dust_dict</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load the dictionary with the best dust fits per inclination. This function replaces the call to seds.plot_best_fits</span>
+<span class="sd">    in flat_disk_log_grid.</span>
+<span class="sd">    The pickle files were created using</span>
+<span class="sd">    sed_calculations.plot_best_fits(inc_deg, &#39;i&#39;, st, folder=&quot;sed_Ri_dsr&quot;, Ti= &lt;best fit Ti&gt; ,plot=False) with</span>
+<span class="sd">    - Ti = 1500 for st = &#39;B268&#39;,&#39;B243&#39;,&#39;B275&#39;,&#39;B163&#39; and Ti = 400 for st = &#39;B331&#39;</span>
+<span class="sd">    - inc_deg = np.array([0,10,20,30,40,50,60,70,80,89])</span>
+
+<span class="sd">    :param st: String with the star name for which the dictionary is needed.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">aux_files</span> <span class="o">/</span> <span class="p">(</span><span class="s2">&quot;inc_dust_dict_&quot;</span> <span class="o">+</span> <span class="n">st</span> <span class="o">+</span> <span class="s2">&quot;.pkl&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="filename_co_grid_point">
+<a class="viewcode-back" href="../../model.html#model.config.filename_co_grid_point">[docs]</a>
+<span class="k">def</span> <span class="nf">filename_co_grid_point</span><span class="p">(</span><span class="n">ti</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ri_r</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standardized filename for saving grid items.</span>
+
+<span class="sd">    :param ti: (int or float) initial temperature at ri_r in K.</span>
+<span class="sd">    :param p: (float) temperature exponent.</span>
+<span class="sd">    :param ni: (float) initial column density in cm^-2.</span>
+<span class="sd">    :param q: (float) density exponent.</span>
+<span class="sd">    :param ri_r: (float) initial (reference) disk radius in stellar radii.</span>
+<span class="sd">    :param dv: (int or float) gaussian width in km/s. (The None option is retained for older model grids,</span>
+<span class="sd">        that don&#39;t vary dv.)</span>
+<span class="sd">    :return: (str) name of the model file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">ti</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{0:g}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> \
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">format_float_scientific</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="n">precision</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">exp_digits</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> \
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">ri_r</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_dv&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{0:g}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dv</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">ti</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> \
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">format_float_scientific</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="n">precision</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">exp_digits</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> \
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">ri_r</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
+
+
+
+<span class="c1"># Molecular data</span>
+<span class="c1">#  ------------------------------------------</span>
+<span class="c1"># From https://hitran.org/hitemp/</span>
+<span class="c1"># G. Li, I.E. Gordon et al. 2015, The Astrophysical Journal Supplement Series 21615.</span>
+<span class="c1">#</span>
+<span class="c1"># Column    Units   Label     Explanations</span>
+<span class="c1">#</span>
+<span class="c1">#   0        ---     vlow        Vibrational quantum number of the lower level</span>
+<span class="c1">#   1        ---     jl_all      Rotational quantum number of the lower level</span>
+<span class="c1">#   2        ---     vhigh       Vibrational quantum number of the upper level</span>
+<span class="c1">#   3        ---     jh        Rotational quantum number of the upper level</span>
+<span class="c1">#   4        s-1     A         Einstein A-coefficient</span>
+<span class="c1">#   5        cm-1    El_all     Energies of the lower level of the transitions</span>
+<span class="c1">#   6        cm-1    freq_tr    Frequency of the transition</span>
+<span class="c1">#</span>
+<span class="c1">#  -----------------------------------------------------</span>
+
+<span class="n">vlow</span><span class="p">,</span> <span class="n">jl_all</span><span class="p">,</span> <span class="n">vhigh</span><span class="p">,</span> <span class="n">jh</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">El_all</span><span class="p">,</span> <span class="n">freq_tr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">atomic_data</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+<span class="n">El_all</span> <span class="o">*=</span> <span class="n">cm_K</span>
+
+<span class="c1"># Precalculated partition sums (cross-checked with the values provided by Li, Gordon et al. 2015):</span>
+<span class="c1"># &gt;&gt;&gt; T_gas = np.arange(1,9001,0.1)</span>
+<span class="c1"># &gt;&gt;&gt; El_all, uni_indices = np.unique(cfg.El_all, return_index=True)</span>
+<span class="c1"># &gt;&gt;&gt; Q = np.sum((2 * cfg.jl_all[uni_indices][:, None] + 1) * np.exp(-El_all[:, None] / T_gas[None, :]), axis=0)</span>
+<span class="c1"># &gt;&gt;&gt; to_save = np.core.records.fromarrays(np.array([T_gas,Q]), names=&#39;T, Q&#39;, formats=&#39;f4, f4&#39;)</span>
+<span class="c1"># &gt;&gt;&gt; np.save(cfg.aux_files + &quot;Q_12C16O&quot;,to_save)</span>
+<span class="n">Q_T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">partition_sums</span><span class="p">)</span>
+
+<span class="c1"># Dust data</span>
+
+<span class="c1"># ----------------------------------------------</span>
+<span class="c1"># CONTINUUM EMISSION</span>
+<span class="c1"># ----------------------------------------------</span>
+
+<span class="c1">#  ---------------------------------------------</span>
+<span class="c1">#  Table from https://www.astro.princeton.edu/~draine/dust/dust.diel.html</span>
+<span class="c1">#  Astronomical silicate, radius (micron) = 1.000E-01</span>
+<span class="c1">#  B.T.Draine, Princeton Univ. (cf Laor, A., &amp; Draine, B.T. 1993, ApJ 402,441)</span>
+<span class="c1">#</span>
+<span class="c1"># Column    Units    Label     Explanations</span>
+<span class="c1">#   0        micron   w         wavelength</span>
+<span class="c1">#   1        ---      Re(eps-1) Real part of dielectric function (material polarization)</span>
+<span class="c1">#   2        ---      Im(eps)   Imaginary part of dielectric function (absorption properties)</span>
+<span class="c1">#   3        ---      Re(m-1)   Real part of ??</span>
+<span class="c1">#   4        ---      Im(m)     Imaginary part of ??</span>
+<span class="c1">#  ---------------------------------------------</span>
+<span class="c1"># Read in file</span>
+
+<span class="n">wsil</span><span class="p">,</span> <span class="n">Re_eps_sil</span><span class="p">,</span> <span class="n">Im_eps_sil</span><span class="p">,</span> <span class="n">Re_m_sil_table</span><span class="p">,</span> <span class="n">Im_m_sil</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">dust_data</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Cut out the far UV.</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">wsil</span> <span class="o">&gt;</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">wsil</span> <span class="o">=</span> <span class="n">wsil</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+<span class="n">Re_m_sil</span> <span class="o">=</span> <span class="n">Re_eps_sil</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Why?</span>
+<span class="n">mm</span> <span class="o">=</span> <span class="n">Re_m_sil</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">Im_eps_sil</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+<span class="n">Qabs</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radg</span> <span class="o">/</span> <span class="n">wsil</span> <span class="o">/</span> <span class="mf">1e-4</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">((</span><span class="n">mm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">mm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+
+
+<span class="c1"># Photometric data</span>
+
+<div class="viewcode-block" id="jy_to_erg_s_cm2_um">
+<a class="viewcode-back" href="../../model.html#model.config.jy_to_erg_s_cm2_um">[docs]</a>
+<span class="k">def</span> <span class="nf">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">f_vu</span><span class="p">,</span> <span class="n">wvl</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert flux units. Uses c as defined in config (converts from cm/s to um/s).</span>
+
+<span class="sd">    :param f_vu: Flux in Jy.</span>
+<span class="sd">    :param wvl: Wavelength in micron.</span>
+<span class="sd">    :return: Flux in erg/s/cm^2/um</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">1.e-23</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="mf">1.e4</span> <span class="o">/</span> <span class="n">wvl</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">f_vu</span></div>
+
+
+
+<span class="c1"># Flux zero points J, H, and K_s : https://old.ipac.caltech.edu/2mass/releases/allsky/doc/sec6_4a.html</span>
+<span class="c1"># http://irsa.ipac.caltech.edu/data/SPITZER/docs/spitzermission/missionoverview/spitzertelescopehandbook/19/</span>
+<span class="c1"># http://casa.colorado.edu/~ginsbura/filtersets.htm</span>
+
+<span class="c1"># Dictionary with photometric flux zero&#39;s and wavelength points.</span>
+<span class="c1"># (for details see photometry in auxfiles).</span>
+<span class="c1"># (wavelength,zero point flux, error on zeropoint) in (micron, erg/s/cm^-2/um, erg/s/cm^-2/um)</span>
+
+<span class="n">m17_phot_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.791</span><span class="p">,</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mi">2499</span><span class="p">,</span> <span class="mf">0.791</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">],</span> <span class="s1">&#39;J&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.235</span><span class="p">,</span> <span class="mf">3.129e-6</span><span class="p">,</span> <span class="mf">5.464e-8</span><span class="p">],</span>
+                 <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.662</span><span class="p">,</span> <span class="mf">1.133e-6</span><span class="p">,</span> <span class="mf">2.212e-8</span><span class="p">],</span> <span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">2.159</span><span class="p">,</span> <span class="mf">4.283e-7</span><span class="p">,</span> <span class="mf">8.053e-9</span><span class="p">],</span>
+                 <span class="s1">&#39;3.4um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">3.3526</span><span class="p">,</span> <span class="mf">8.1787e-08</span><span class="p">,</span> <span class="mf">1.2118e-09</span><span class="p">],</span>
+                 <span class="s1">&#39;3.6um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">3.550</span><span class="p">,</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">280.9</span><span class="p">,</span> <span class="mf">3.55</span><span class="p">),</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">4.1</span><span class="p">,</span> <span class="mf">3.55</span><span class="p">)],</span>
+                 <span class="s1">&#39;4.5um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">4.493</span><span class="p">,</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">179.7</span><span class="p">,</span> <span class="mf">4.493</span><span class="p">),</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">2.6</span><span class="p">,</span> <span class="mf">4.493</span><span class="p">)],</span>
+                 <span class="s1">&#39;4.6um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">4.6028</span><span class="p">,</span> <span class="mf">2.4150e-08</span><span class="p">,</span> <span class="mf">3.5454e-10</span><span class="p">],</span>
+                 <span class="s1">&#39;5.8um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.731</span><span class="p">,</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">115.0</span><span class="p">,</span> <span class="mf">5.731</span><span class="p">),</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">1.7</span><span class="p">,</span> <span class="mf">5.731</span><span class="p">)],</span>
+                 <span class="s1">&#39;8.0um&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">7.872</span><span class="p">,</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">63.13</span><span class="p">,</span> <span class="mf">7.872</span><span class="p">),</span> <span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="mf">0.92</span><span class="p">,</span> <span class="mf">7.872</span><span class="p">)]}</span>
+
+<span class="n">M17_phot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">photometry_naira</span><span class="p">,</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="p">({</span><span class="s1">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Obj&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;e_I&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;e_J&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;e_H&#39;</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="s1">&#39;e_K&#39;</span><span class="p">,</span> <span class="s1">&#39;3.4um&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;e_3.4&#39;</span><span class="p">,</span> <span class="s1">&#39;3.6um&#39;</span><span class="p">,</span> <span class="s1">&#39;e_3.6&#39;</span><span class="p">,</span> <span class="s1">&#39;4.5um&#39;</span><span class="p">,</span> <span class="s1">&#39;e_4.5&#39;</span><span class="p">,</span> <span class="s1">&#39;4.6um&#39;</span><span class="p">,</span> <span class="s1">&#39;e_4.6&#39;</span><span class="p">,</span> <span class="s1">&#39;5.8um&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;e_5.8&#39;</span><span class="p">,</span> <span class="s1">&#39;8.0um&#39;</span><span class="p">,</span> <span class="s1">&#39;e_8.0&#39;</span><span class="p">),</span>
+                              <span class="s1">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;U10&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">)}))</span><span class="o">.</span><span class="n">T</span>
+
+<span class="n">phot_frame_m17</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">M17_phot</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">M17_phot</span><span class="p">[</span><span class="s1">&#39;Obj&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="mag_to_flux">
+<a class="viewcode-back" href="../../model.html#model.config.mag_to_flux">[docs]</a>
+<span class="k">def</span> <span class="nf">mag_to_flux</span><span class="p">(</span><span class="n">band</span><span class="p">,</span> <span class="n">mag</span><span class="p">,</span> <span class="n">phot_dict</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma_nan</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert magnitude to flux in erg s^-1 cm^-2 um^-1.</span>
+
+<span class="sd">    :param band: photometry band as listed in the phot_dict</span>
+<span class="sd">    :type band: string</span>
+<span class="sd">    :param mag: magnitude of the object</span>
+<span class="sd">    :param phot_dict: the photometry dictionary containing per band (wavelength,zero point flux, error on zeropoint).</span>
+<span class="sd">    :param sigma: optional error on magnitude.</span>
+<span class="sd">    :param sigma_nan: the fractional error to be assigned when sigma is nan.</span>
+<span class="sd">    :return: flux in erg s^-1 cm^-2 um^-1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f0</span> <span class="o">=</span> <span class="n">phot_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">band</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">fm</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4</span> <span class="o">*</span> <span class="n">mag</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">f0</span> <span class="o">*</span> <span class="n">fm</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">f</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sigma_f0</span> <span class="o">=</span> <span class="n">phot_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">band</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">sigma_m</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="n">sigma_fm</span> <span class="o">=</span> <span class="n">sigma_m</span> <span class="o">*</span> <span class="mf">2.3</span> <span class="o">/</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">fm</span>
+        <span class="n">sigma_f</span> <span class="o">=</span> <span class="n">f</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">sigma_f0</span> <span class="o">/</span> <span class="n">f0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">sigma_fm</span> <span class="o">/</span> <span class="n">fm</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">sigma_f</span><span class="p">):</span>
+            <span class="n">sigma_f</span> <span class="o">=</span> <span class="n">sigma_nan</span> <span class="o">*</span> <span class="n">f</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">f</span><span class="p">,</span> <span class="n">sigma_f</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="flux_ext">
+<a class="viewcode-back" href="../../model.html#model.config.flux_ext">[docs]</a>
+<span class="k">def</span> <span class="nf">flux_ext</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">wvl</span><span class="p">,</span> <span class="n">a_v</span><span class="p">,</span> <span class="n">r_v</span><span class="p">,</span> <span class="n">dered</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extinction correction according to (Cardelli, Clayton, and Mathis 1989, ApJ 345, 245.)</span>
+<span class="sd">    Calculates the extinction corrected flux according to Cardelli extinction law, interpolated over wvl,</span>
+<span class="sd">    for the given A_V and R_V.</span>
+
+<span class="sd">    :param flux: flux array in arbitrary units</span>
+<span class="sd">    :param wvl: wavelength array in micron</span>
+<span class="sd">    :param a_v: Extinction in V band.</span>
+<span class="sd">    :param r_v: Slope of the extinction in V band.</span>
+<span class="sd">    :param dered: if True, then deredden observed flux.</span>
+<span class="sd">    :return: Extinction corrected flux for wavelengths between 0.36-3.45 um.</span>
+<span class="sd">             Flux-values outside this range are returned unaltered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># The Cardelli wavelengths and coefficients. A 0-point was added to help the fit.</span>
+    <span class="n">x_Card</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.78</span><span class="p">,</span> <span class="mf">2.27</span><span class="p">,</span> <span class="mf">1.82</span><span class="p">,</span> <span class="mf">1.43</span><span class="p">,</span> <span class="mf">1.11</span><span class="p">,</span> <span class="mf">.8</span><span class="p">,</span> <span class="mf">.63</span><span class="p">,</span> <span class="mf">.46</span><span class="p">,</span> <span class="mf">.29</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">])</span>
+    <span class="n">a_Card</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.9530</span><span class="p">,</span> <span class="mf">.9982</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">.8686</span><span class="p">,</span> <span class="mf">.6800</span><span class="p">,</span> <span class="mf">.4008</span><span class="p">,</span> <span class="mf">.2693</span><span class="p">,</span> <span class="mf">.1615</span><span class="p">,</span> <span class="mf">.0800</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">b_Card</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.9090</span><span class="p">,</span> <span class="mf">1.0495</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">.3660</span><span class="p">,</span> <span class="o">-</span><span class="mf">.6239</span><span class="p">,</span> <span class="o">-</span><span class="mf">.3679</span><span class="p">,</span> <span class="o">-</span><span class="mf">.2473</span><span class="p">,</span> <span class="o">-</span><span class="mf">.1483</span><span class="p">,</span> <span class="o">-</span><span class="mf">.0734</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Fit a 4th degree polynomial to the inverse wavelengths and apply to the wavelength array.</span>
+    <span class="n">Al</span> <span class="o">=</span> <span class="p">(</span><span class="n">a_Card</span> <span class="o">+</span> <span class="n">b_Card</span> <span class="o">/</span> <span class="n">r_v</span><span class="p">)</span> <span class="o">*</span> <span class="n">a_v</span>
+    <span class="n">coeffs_C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="n">x_Card</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">Al_interp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">coeffs_C</span><span class="p">)(</span><span class="n">wvl</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Select the wavelength point with 0 (or minimum) extinction and redden all blue-ward flux-points.</span>
+    <span class="n">max_wvl_ext</span> <span class="o">=</span> <span class="n">wvl</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Al_interp</span><span class="p">))]</span>
+
+    <span class="n">wvl_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">wvl</span> <span class="o">&lt;=</span> <span class="n">max_wvl_ext</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flux</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="n">ext_mask</span><span class="p">[</span><span class="n">wvl_indexes</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">Al_final</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">coeffs_C</span><span class="p">)(</span><span class="n">wvl</span><span class="p">[</span><span class="n">wvl_indexes</span><span class="p">]</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Extincted or dereddened flux.</span>
+    <span class="k">if</span> <span class="n">dered</span><span class="p">:</span>
+        <span class="n">dered_fl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">flux</span><span class="p">[</span><span class="n">wvl_indexes</span><span class="p">])</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">Al_final</span> <span class="o">/</span> <span class="mf">2.5</span><span class="p">)</span>
+        <span class="n">tot_fl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">flux</span><span class="p">[</span><span class="n">ext_mask</span><span class="p">],</span> <span class="n">dered_fl</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ext_fl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">flux</span><span class="p">[</span><span class="n">wvl_indexes</span><span class="p">])</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">Al_final</span> <span class="o">/</span> <span class="mf">2.5</span><span class="p">)</span>
+        <span class="n">tot_fl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">flux</span><span class="p">[</span><span class="n">ext_mask</span><span class="p">],</span> <span class="n">ext_fl</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">tot_fl</span></div>
+
+
+
+<div class="viewcode-block" id="get_and_convert_mag_naira">
+<a class="viewcode-back" href="../../model.html#model.config.get_and_convert_mag_naira">[docs]</a>
+<span class="k">def</span> <span class="nf">get_and_convert_mag_naira</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">phot_frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">phot_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get and convert all the magnitudes to flux. Gets the photometric fluxes and errors for each object to</span>
+<span class="sd">    be collected in `photometry_dict`.</span>
+
+<span class="sd">    :param obj: (str) object name.</span>
+<span class="sd">    :param phot_frame: ``panda`` dataframe created from the photometry file.</span>
+<span class="sd">    :param phot_dict: dictionary with photometric flux zero&#39;s and wavelength points.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">phot_frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">phot_frame</span> <span class="o">=</span> <span class="n">phot_frame_m17</span>
+    <span class="k">if</span> <span class="n">phot_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">phot_dict</span> <span class="o">=</span> <span class="n">m17_phot_dict</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">wvl</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">phot_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">mag</span> <span class="o">=</span> <span class="n">phot_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span> <span class="n">key</span><span class="p">]</span>
+        <span class="n">sigma_key</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;e_&#39;</span> <span class="o">+</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;um&#39;</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">phot_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span> <span class="n">sigma_key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mag</span><span class="p">):</span>
+            <span class="n">wvl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phot_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mag_to_flux</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mag</span><span class="p">,</span> <span class="n">phot_dict</span><span class="p">,</span> <span class="n">sigma</span><span class="p">))</span>
+    <span class="c1"># Add additional fluxpoints for B275 and B331 &#39;manually&#39;.</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="o">==</span> <span class="s1">&#39;B275&#39;</span><span class="p">:</span>
+        <span class="n">wvl</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">10.6</span><span class="p">,</span> <span class="mi">20</span><span class="p">])</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.9</span><span class="p">,</span> <span class="mf">0.32</span><span class="p">]),</span> <span class="mf">10.6</span><span class="p">))</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">7.9</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="mf">7.9</span><span class="p">]),</span> <span class="mi">20</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="o">==</span> <span class="s1">&#39;B331&#39;</span><span class="p">:</span>
+        <span class="n">wvl</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">9.8</span><span class="p">,</span> <span class="mf">10.53</span><span class="p">,</span> <span class="mf">11.7</span><span class="p">,</span> <span class="mf">20.6</span><span class="p">,</span> <span class="mi">37</span><span class="p">])</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> <span class="mf">9.8</span><span class="p">))</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">]),</span> <span class="mf">10.53</span><span class="p">))</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]),</span> <span class="mf">11.7</span><span class="p">))</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">6.4</span><span class="p">,</span> <span class="mf">0.87</span><span class="p">]),</span> <span class="mf">20.6</span><span class="p">))</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jy_to_erg_s_cm2_um</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">21.89</span><span class="p">,</span> <span class="mf">2.19</span><span class="p">]),</span> <span class="mi">37</span><span class="p">))</span>
+
+    <span class="c1"># Get the indices of the corresponding points in wsil (for SED fitting).</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">wsil</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">wvl</span><span class="p">]</span>
+    <span class="n">phot_flux_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">wvl</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">ind</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">phot_flux_ind</span></div>
+
+
+
+<span class="n">photometry_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">obj</span><span class="p">:</span><span class="n">get_and_convert_mag_naira</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">phot_frame_m17</span><span class="o">.</span><span class="n">index</span><span class="p">}</span>
+
+<span class="c1">#  FUNCTIONS</span>
+
+
+<div class="viewcode-block" id="planck_wvl">
+<a class="viewcode-back" href="../../model.html#model.config.planck_wvl">[docs]</a>
+<span class="k">def</span> <span class="nf">planck_wvl</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">temp</span><span class="p">):</span>  <span class="c1"># erg/s/cm2/micron (with x in cm)</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">c</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">5</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">c</span> <span class="o">/</span> <span class="n">kB</span> <span class="o">/</span> <span class="n">temp</span> <span class="o">/</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.e-4</span></div>
+
+
+
+<div class="viewcode-block" id="planck_freq">
+<a class="viewcode-back" href="../../model.html#model.config.planck_freq">[docs]</a>
+<span class="k">def</span> <span class="nf">planck_freq</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">temp</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="n">kB</span> <span class="o">/</span> <span class="n">temp</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="gaussian">
+<a class="viewcode-back" href="../../model.html#model.config.gaussian">[docs]</a>
+<span class="k">def</span> <span class="nf">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalized Gaussian.</span>
+
+<span class="sd">    :param x: variable.</span>
+<span class="sd">    :param mu: center.</span>
+<span class="sd">    :param sigma: standard deviation.</span>
+<span class="sd">    :return: a normalized Gaussian in as a function of x.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="p">(((</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="integrand_gauss">
+<a class="viewcode-back" href="../../model.html#model.config.integrand_gauss">[docs]</a>
+<span class="k">def</span> <span class="nf">integrand_gauss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">mstar</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="n">sampling</span> <span class="o">*</span> <span class="n">min_dv_cm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The gaussian function peaking at a velocity corresponding to a certain radius and angle.</span>
+<span class="sd">    In flat_disk_log_grid this function is integrated over the angle theta to obtain a velocity profile for each radius.</span>
+
+<span class="sd">    :param mstar: Stellar mass.</span>
+<span class="sd">    :param inc: Inclination of the disk</span>
+<span class="sd">    :param dv: width of the gaussian velocity distribution peaking at the Keplerian velocity (in cm/s).</span>
+<span class="sd">        The default is twice the resolution of the wavelength array, making it de facto a delta function,</span>
+<span class="sd">        i.e. assuming no macro turbulence.</span>
+<span class="sd">    :param theta: Angular coordinate.</span>
+<span class="sd">    :param v: velocity array in cm/s.</span>
+<span class="sd">    :param r: Radial coordinate.</span>
+<span class="sd">    :return: A gaussian peaking at the velocity at (theta,r) in the disk (units: (cm/s)^-1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">v_kep_cm_s</span><span class="p">(</span><span class="n">mstar</span><span class="p">,</span> <span class="n">r</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">inc</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">return</span> <span class="n">gaussian</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">mu</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dv</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">v_kep_cm_s</span><span class="p">(</span><span class="n">mstar</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">inc</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gaussian</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">dv</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="v_kep_cm_s">
+<a class="viewcode-back" href="../../model.html#model.config.v_kep_cm_s">[docs]</a>
+<span class="k">def</span> <span class="nf">v_kep_cm_s</span><span class="p">(</span><span class="n">m_star</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Keplarian velocity in cm/s.</span>
+
+<span class="sd">    :param m_star: in units solar mass.</span>
+<span class="sd">    :param r: stellar radius in cm.</span>
+<span class="sd">    :return: Keplarian velocity in cm/s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">m_star</span> <span class="o">*</span> <span class="n">M_sun</span> <span class="o">/</span> <span class="n">r</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Temperature power law</span>
+
+<div class="viewcode-block" id="t_ex">
+<a class="viewcode-back" href="../../model.html#model.config.t_ex">[docs]</a>
+<span class="k">def</span> <span class="nf">t_ex</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">ti</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Excitation temperature for the gas, given as a power law.</span>
+
+<span class="sd">    :param r: Radial coordinate in cm.</span>
+<span class="sd">    :type r: array</span>
+<span class="sd">    :param ti: Initial temperature at ri in K.</span>
+<span class="sd">    :param ri: Initial radius in cm.</span>
+<span class="sd">    :param p: Power law exponent.</span>
+<span class="sd">    :return: Return excitation temperature in function of r.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ti</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">ri</span><span class="p">)</span> <span class="o">**</span> <span class="n">p</span></div>
+
+
+
+<div class="viewcode-block" id="nco">
+<a class="viewcode-back" href="../../model.html#model.config.nco">[docs]</a>
+<span class="k">def</span> <span class="nf">nco</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">ri</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The CO surface density powerlaw (in cm^-2).</span>
+
+<span class="sd">    :param r: radius in cm</span>
+<span class="sd">    :param ni: Gas (H2) surface density at initial radius (in cm^-2).</span>
+<span class="sd">    :param ri: Initial radius in cm</span>
+<span class="sd">    :param q: Power law exponent for gas density</span>
+<span class="sd">    :return: The CO surface density in cm^-2.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ni</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">ri</span><span class="p">)</span> <span class="o">**</span> <span class="n">q</span> <span class="o">/</span> <span class="n">H_CO</span><span class="p">[</span><span class="n">species</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="stellar_cont">
+<a class="viewcode-back" href="../../model.html#model.config.stellar_cont">[docs]</a>
+<span class="k">def</span> <span class="nf">stellar_cont</span><span class="p">(</span><span class="n">star</span><span class="p">,</span> <span class="n">wc</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the (not-extincted) stellar continuum on the given wavelength array.</span>
+
+<span class="sd">    :param star: name of the star.</span>
+<span class="sd">    :type star: string</span>
+<span class="sd">    :param wc: wavelength array in micron (of model).</span>
+<span class="sd">    :type wc: array</span>
+<span class="sd">    :return: Stellar continuum according to Kurucz model in the relevant wavelength range.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Load saved Kurucz models, using the original stellar_cont function.</span>
+    <span class="c1"># Model flux at Earth in units: ergs/cm^2/s/micron</span>
+    <span class="n">mod_wvl_micron</span><span class="p">,</span> <span class="n">mod_flux_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">aux_files</span> <span class="o">/</span> <span class="p">(</span><span class="s2">&quot;kurucz_&quot;</span> <span class="o">+</span> <span class="n">star</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">))</span>
+
+    <span class="c1"># Select relevant wavelengths.</span>
+    <span class="n">IR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">mod_wvl_micron</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">wc</span><span class="p">),</span> <span class="n">mod_wvl_micron</span> <span class="o">&gt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">wc</span><span class="p">)))</span>
+    <span class="n">mod_wvl</span> <span class="o">=</span> <span class="n">mod_wvl_micron</span><span class="p">[</span><span class="n">IR</span><span class="p">]</span>
+    <span class="n">mod_flux</span> <span class="o">=</span> <span class="n">mod_flux_full</span><span class="p">[</span><span class="n">IR</span><span class="p">]</span>
+    <span class="c1"># Interpolate onto wavelength grid.</span>
+    <span class="n">stel_cont</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">mod_wvl</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">mod_flux</span><span class="p">),</span> <span class="n">fill_value</span><span class="o">=</span><span class="s1">&#39;extrapolate&#39;</span><span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">wc</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">stel_cont</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, J Poorta.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
