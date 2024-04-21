@@ -562,6 +562,7 @@ def run_grid_log_r(grid, inc_deg, stars, dv0, vupper, vlower, nJ, dust, species,
 
             filename = cfg.filename_co_grid_point(ti, p, ni, q, ri_R, t1=t1[()], a=a[()])
             if dF is not None:
+                os.makedirs(cfg.results_folder / st / ("dF" + dF), exist_ok=True)
                 dF_use = str(cfg.results_folder / st / ("dF" + dF) /
                              cfg.filename_co_grid_point(ti, p, ni, q, ri_R, dv=dv0_cm[0] / 1.e5, t1=t1[()], a=a[()]))
                 np.save(dF_use + "_wvl", wvl)
