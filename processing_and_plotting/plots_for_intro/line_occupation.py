@@ -78,8 +78,8 @@ fig, axes = create_figure(5)
 
 for i, t in enumerate(t_gas):
     plot_on_divided_axes(wave, alpha_co[0][i], (fig, axes[i]), **dict(label=r"$T_{\rm ex}=$"+str(int(t+1))+" K",
-                                                                      lw=0.35, alpha=0.3))
-
+                                                                      lw=0.2, c= 'k', alpha=0.3))
+    plot_on_divided_axes(wave, alpha_co[0][i], (fig, axes[i]), **dict(lw=0.2, c='k', alpha=0.3))
 fig.savefig(cfg.plot_folder/"line_occupation.pdf")
 
 plt.show()

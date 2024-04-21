@@ -180,10 +180,14 @@ class Gridpoint:
         :return: the total CO gas intensity (radial dimension should cover entire disk).
         """
         intensity_conv_co = self.saved_intensity_conv_co()
-        intensity_conv_mix = self.saved_intensity_conv_mix()
-        intensity_conv_dust = self.saved_intensity_conv_dust()
+        # If there is no dust, only get CO.
+        if not self.all_params["dust"]:
+            return intensity_conv_co
+        else:
+            intensity_conv_mix = self.saved_intensity_conv_mix()
+            intensity_conv_dust = self.saved_intensity_conv_dust()
 
-        return np.concatenate((intensity_conv_co, intensity_conv_mix - intensity_conv_dust), axis=1)
+            return np.concatenate((intensity_conv_co, intensity_conv_mix - intensity_conv_dust), axis=1)
 
     def obtain_dust_fit_params(self):
         """

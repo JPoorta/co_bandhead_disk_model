@@ -20,7 +20,7 @@ def run():
 
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys(),markerscale=5,loc='best', bbox_to_anchor=(0., 0., 0.5, 0.5))
+    plt.legend(by_label.values(), by_label.keys(), markerscale=5, loc='best', bbox_to_anchor=(0., 0., 0.5, 0.5))
 
     plt.annotate(r"Second overtone ($\Delta v=3$)",xy=(4415, 153.5),fontsize=9)
     plt.annotate(r"First overtone ($\Delta v=2$)",xy=(2700, 153.5),fontsize=9)

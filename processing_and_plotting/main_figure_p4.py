@@ -215,7 +215,8 @@ def create_fig_and_plot(grid=None):
     return
 
 
-def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=None, legend_dict=None, **plot_kwargs):
+def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=None, legend_dict=None,
+              fid_mod_pl_dict=None, label=None, **plot_kwargs):
     """
     Plot the models with different N12CO/N13CO ratios, for a model with otherwise same parameters (fiducial model).
     Optionally overplot the fiducial model with no 13CO.
@@ -227,6 +228,8 @@ def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=No
     :param fig_ax: (tuple) figure and ax object to use. If not provided something will be created.
     :param iso_ratios: (list of ints) the isotopologue (N12CO/N13CO) ratios of the models.
     :param legend_dict: dictionary for the legend to be passed to plot on separate axes.
+    :param fid_mod_pl_dict: (dict) dictionary with plot specs for the fiducial model.
+    :param label: (str) label for the 13CO included plot(s).
     :return:
     """
     if iso_ratios is None:
@@ -235,12 +238,16 @@ def plot_13co(folder, filename, wvl, fid_mod_fl=None, fig_ax=None, iso_ratios=No
     for ratio in iso_ratios:
         full_path = folder + filename + "_13C16O_" + str(ratio) + ".npy"
         flux = np.load(full_path)
-        plot_kwargs["label"] = ratio
+        if label is None:
+            label = ratio
+        plot_kwargs["label"] = label
         pltr.plot_on_divided_axes(wvl, flux, fig_ax=fig_ax, legend_specs=legend_dict, **plot_kwargs)
 
     if fid_mod_fl is not None:
+        if fid_mod_pl_dict is None:
+            fid_mod_pl_dict = dict(lw=0.8, c="k", label=r"no $^{13}$CO", zorder=2)
         pltr.plot_on_divided_axes(wvl, fid_mod_fl, fig_ax=fig_ax, legend_specs=legend_dict,
-                                  **dict(lw=0.8, c="k", label=r"no $^{13}$CO", zorder=2))
+                                  **fid_mod_pl_dict)
 
     return
 
