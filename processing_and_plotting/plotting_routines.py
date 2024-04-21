@@ -3,7 +3,6 @@ import numpy as np
 
 import model.config as cfg
 import model.sed_calculations as seds
-import processing_and_plotting.Gridpoint as Gridpoint
 from model.flat_disk_log_grid import create_t_gas_array, create_radial_array
 
 
@@ -145,8 +144,8 @@ def create_3_in_1_figure(num):
                         gridspec_kw={"width_ratios": [1.5, 3, 3],
                                      "top": 0.975,
                                      "bottom": 0.20,
-                                     "left": 0.035,
-                                     "right": 0.965,
+                                     "left": 0.037,
+                                     "right": 0.963,
                                      "hspace": 0.2,
                                      "wspace": 0.045})
 
@@ -190,7 +189,10 @@ def plot_on_divided_axes(x, y, num=3, fig_ax=None, title=None, legend_specs=None
     ax[2].spines['left'].set_visible(False)
     ax[2].tick_params(labelright=True, right=True, left=False, labelleft=False)
 
-    ax[1].legend(**legend_specs)   #  bbox_to_anchor=(-0.05, 1)
+    leg = ax[1].legend(**legend_specs)
+    for legobj in leg.legendHandles:
+        legobj.set_linewidth(1.5)
+    #  bbox_to_anchor=(-0.05, 1)
 
     return fig, ax
 
@@ -256,7 +258,7 @@ def plot_t_structure_original(star):
     return
 
 
-def plot_cum_flux(gp, fig_ax=None):
+def plot_cum_flux(gp, fig_ax=None, label_base=None, **plot_kwargs):
     """
 
     :param gp: (Gridpoint object) defines the model,
@@ -269,50 +271,12 @@ def plot_cum_flux(gp, fig_ax=None):
         fig, ax = plt.subplots(figsize=(5, 4))
     else:
         fig, ax = fig_ax
-    label_base = gp.test_param + " = " + str(gp.test_value)
-    p = ax.semilogx(r_disk_AU, dF_disk[0, :, 2], label=label_base + "; fund")[0]
-    ax.semilogx(r_disk_AU, dF_disk[0, :, 1], '--', c=p.get_color(), label=label_base + "; 1st ot")
-    ax.semilogx(r_disk_AU, dF_disk[0, :, 0], ':', c=p.get_color(), label=label_base + "; 2nd ot")
+    if label_base is None:
+        label_base = gp.test_param + " = " + str(gp.test_value)
+    p = ax.semilogx(r_disk_AU, dF_disk[0, :, 2], label=label_base + r"; $\Delta v=1$", **plot_kwargs)[0]
+    ax.semilogx(r_disk_AU, dF_disk[0, :, 1], '--', c=p.get_color(), label=label_base + r"; $\Delta v=2$")
+    ax.semilogx(r_disk_AU, dF_disk[0, :, 0], ':', c=p.get_color(), label=label_base + r"; $\Delta v=3$")
 
     return
 
 
-def plot_cum_flux_grid(grid):
-    """
-    Plot the cumulative flux plot of a grid as defines in list_of_grids.  Only do this for varied parameters in the
-    grid, so not (yet) for parameters defined in all_params, such as inc, dv0. etc.
-
-    :param grid: (list of three dicts) grid as defined in 'list_of_grids'. This grid must already have been run and
-    saved through the parameter "dF".
-    :return:
-    """
-
-    grid_params, all_params, test_param_dict = grid
-    gridspec = dict(hspace=0, wspace=0)
-    fig, axes = plt.subplots(2,2, figsize=(10, 8), sharex=True, sharey=True, constrained_layout=True,
-                             gridspec_kw=gridspec)
-
-    i = 0  # ax index
-    for test_param, test_param_array in test_param_dict.items():
-        if test_param in ["ti", "ni", "q", "t1"]:
-            ax = axes.flatten()[i]
-            for value in test_param_array:
-                grid_params_use = grid_params.copy()
-                if test_param in grid_params.keys():
-                    grid_params_use[test_param] = test_param_array
-                grid_params_use[test_param] = value
-                gp = Gridpoint.Gridpoint(**grid_params_use, all_params=all_params,
-                                         test_param=test_param, test_value=value)
-                plot_cum_flux(gp, fig_ax=(fig, ax))
-            ax.set_title(label_dict[test_param], )
-            ax.legend(loc="upper right")
-            ax.set_ylim(0,1.05)
-            i += 1
-    axes[0][0].set_ylabel(r"$dF/F_{\rm tot}$")
-    axes[1][0].set_ylabel(r"$dF/F_{\rm tot}$")
-    axes[1][0].set_xlabel(r"$R$ (AU)")
-    axes[1][1].set_xlabel(r"$R$ (AU)")
-    fig.savefig(cfg.plot_folder / "df_plots.pdf")
-    plt.show()
-
-    return
